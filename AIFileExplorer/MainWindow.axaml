@@ -1,9 +1,111 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:models="using:AIFileExplorer.Models"
         x:Class="AIFileExplorer.MainWindow"
-        Title="AIFileExplorer">
-    Welcome to Avalonia!
+        Title="AI File Explorer — Day 5: System.IO"
+        Width="960" Height="620"
+        MinWidth="700" MinHeight="400">
+
+    <!--
+        DockPanel arranges children against its edges (Top, Bottom, Left, Right).
+        The last child (FileList) gets the remaining space via LastChildFill="True".
+    -->
+    <DockPanel LastChildFill="True">
+
+        <!-- ══ Toolbar ════════════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Top"
+                Background="#1E1E2E"
+                Padding="10,8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Path:"
+                           VerticalAlignment="Center"
+                           Foreground="#CDD6F4"/>
+                <TextBox x:Name="PathBox"
+                         Width="560"
+                         VerticalContentAlignment="Center"
+                         FontFamily="Monospace"/>
+                <Button x:Name="ScanButton"
+                        Content="Scan"
+                        Click="OnScanClicked"
+                        Padding="16,4"/>
+                <TextBlock x:Name="StatusText"
+                           VerticalAlignment="Center"
+                           Foreground="#6C7086"
+                           FontSize="12"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ══ Column headers ════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Top"
+                Background="#181825"
+                Padding="10,5">
+            <Grid ColumnDefinitions="*,90,145,70">
+                <TextBlock Grid.Column="0" Text="Name"
+                           Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="1" Text="Size"
+                           Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                           HorizontalAlignment="Right"/>
+                <TextBlock Grid.Column="2" Text="Modified"
+                           Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                           HorizontalAlignment="Right"/>
+                <TextBlock Grid.Column="3" Text="Ext"
+                           Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                           HorizontalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- ══ File list ═════════════════════════════════════════════════════
+             ItemsControl renders one item per FileSystemEntry in FileList.ItemsSource.
+             DataTemplate describes the visual for *each* item.
+             {Binding PropertyName} reads a property from the current item object.
+        ═══════════════════════════════════════════════════════════════════════ -->
+        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="FileList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="models:FileSystemEntry">
+                        <Border Padding="10,1">
+                            <Grid ColumnDefinitions="*,90,145,70">
+
+                                <!-- DisplayName already contains leading spaces for indent -->
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding DisplayName}"
+                                           FontFamily="Monospace"
+                                           FontSize="12"/>
+
+                                <!-- DisplaySize formats bytes into KB/MB/GB -->
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding DisplaySize}"
+                                           FontFamily="Monospace"
+                                           FontSize="12"
+                                           HorizontalAlignment="Right"
+                                           Foreground="#A6E3A1"/>
+
+                                <!--
+                                    StringFormat applies a C# format string to the bound value.
+                                    The extra {} at the start is an XAML escape so the parser
+                                    doesn't confuse {0:…} with a binding expression.
+                                -->
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding LastModified, StringFormat='{}{0:MM/dd/yy HH:mm}'}"
+                                           FontFamily="Monospace"
+                                           FontSize="12"
+                                           HorizontalAlignment="Right"
+                                           Foreground="#89DCEB"/>
+
+                                <!-- Extension is "" for directories, ".txt" etc. for files -->
+                                <TextBlock Grid.Column="3"
+                                           Text="{Binding Extension}"
+                                           FontFamily="Monospace"
+                                           FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           Foreground="#89B4FA"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </DockPanel>
 </Window>
