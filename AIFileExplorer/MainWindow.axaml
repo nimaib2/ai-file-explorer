@@ -1,7 +1,9 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="using:AIFileExplorer.Models"
+        xmlns:vm="using:AIFileExplorer.ViewModels"
         x:Class="AIFileExplorer.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
         Title="AI File Explorer — Day 6: Avalonia XAML"
         Width="960" Height="620"
         MinWidth="700" MinHeight="400">
@@ -33,24 +35,23 @@
                            Foreground="#CDD6F4"
                            Margin="0,0,8,0"/>
 
-                <!-- Column 1: path entry — stretches to fill all spare width -->
+                <!-- Column 1: path entry — two-way binding keeps CurrentPath in sync -->
                 <TextBox Grid.Column="1"
-                         x:Name="PathBox"
+                         Text="{Binding CurrentPath}"
                          VerticalContentAlignment="Center"
                          FontFamily="Monospace"
                          Margin="0,0,8,0"/>
 
-                <!-- Column 2: action button — fixed to its label width -->
+                <!-- Column 2: action button — bound to the generated ScanCommand -->
                 <Button Grid.Column="2"
-                        x:Name="ScanButton"
                         Content="Scan"
-                        Click="OnScanClicked"
+                        Command="{Binding ScanCommand}"
                         Padding="16,4"
                         Margin="0,0,8,0"/>
 
-                <!-- Column 3: status feedback — auto-sized, dimmed -->
+                <!-- Column 3: status feedback — one-way binding from StatusText -->
                 <TextBlock Grid.Column="3"
-                           x:Name="StatusText"
+                           Text="{Binding StatusText}"
                            VerticalAlignment="Center"
                            Foreground="#6C7086"
                            FontSize="12"/>
@@ -83,7 +84,7 @@
         ═══════════════════════════════════════════════════════════════════════ -->
         <ScrollViewer HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto">
-            <ItemsControl x:Name="FileList">
+            <ItemsControl ItemsSource="{Binding Entries}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="models:FileSystemEntry">
                         <Border Padding="10,1">
