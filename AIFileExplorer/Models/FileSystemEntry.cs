@@ -3,32 +3,29 @@ using System;
 namespace AIFileExplorer.Models;
 
 /// <summary>
-/// Represents a single file or directory discovered during a directory walk.
-/// This is a plain data class — no Avalonia or UI dependencies.
+/// Represents a single file or directory in a listed directory.
+/// Plain data class — no Avalonia or UI dependencies.
 /// </summary>
 public class FileSystemEntry
 {
-    public string Name { get; init; } = string.Empty;
-    public string FullPath { get; init; } = string.Empty;
-    public bool IsDirectory { get; init; }
-    public long SizeBytes { get; init; }       // always 0 for directories
+    public string   Name         { get; init; } = string.Empty;
+    public string   FullPath     { get; init; } = string.Empty;
+    public bool     IsDirectory  { get; init; }
+    public long     SizeBytes    { get; init; }   // 0 for directories
     public DateTime LastModified { get; init; }
-    public string Extension { get; init; } = string.Empty;  // e.g. ".txt"; "" for dirs
-    public int Depth { get; init; }            // 0 = root, 1 = first level, etc.
+    public string   Extension    { get; init; } = string.Empty;  // e.g. ".txt"; "" for dirs
 
-    // ── Computed display helpers (used directly by AXAML data-binding) ────────
+    // ── Computed display helpers (bound directly in AXAML) ───────────────────
 
     /// <summary>
-    /// Name prefixed with spaces to simulate tree indentation.
-    /// Four spaces per depth level looks clean in a monospace font.
-    /// "[DIR]" vs "     " visually separates folders from files.
+    /// "[DIR]" prefix for directories; six-space indent for files so names
+    /// align with the directory label in a monospace font.
     /// </summary>
-    public string DisplayName =>
-        new string(' ', Depth * 4) + (IsDirectory ? "[DIR] " : "      ") + Name;
+    public string DisplayName => (IsDirectory ? "[DIR] " : "      ") + Name;
 
     /// <summary>
-    /// Directories don't have a meaningful size here (that would require
-    /// summing all descendants — a later exercise). Files show KB/MB/GB.
+    /// Human-readable file size. Directories show "--" because summing
+    /// all descendants is a later exercise.
     /// </summary>
     public string DisplaySize => IsDirectory ? "--" : FormatBytes(SizeBytes);
 

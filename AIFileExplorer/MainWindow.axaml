@@ -4,99 +4,197 @@
         xmlns:vm="using:AIFileExplorer.ViewModels"
         x:Class="AIFileExplorer.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="AI File Explorer — Day 6: Avalonia XAML"
-        Width="960" Height="620"
+        Title="AI File Explorer — Day 7: Two-Pane Layout"
+        Width="1100" Height="680"
         MinWidth="700" MinHeight="400">
 
     <!--
-        DockPanel arranges children against its edges (Top, Bottom, Left, Right).
-        The last child (FileList) gets the remaining space via LastChildFill="True".
+        DockPanel is the outermost container. Children docked to Top/Bottom are
+        measured first and given their natural height; the last child (the main
+        Grid) fills whatever space is left. LastChildFill="True" is the default
+        but is written explicitly here for clarity.
     -->
     <DockPanel LastChildFill="True">
 
-        <!-- ══ Toolbar ════════════════════════════════════════════════════════
-             Grid replaces StackPanel here.
-             ColumnDefinitions:
-               Auto  — label shrinks/grows to fit its text content
-               *     — TextBox takes ALL remaining width (star sizing)
-               Auto  — Scan button hugs its own content
-               Auto  — Status text hugs its own content
-        ═══════════════════════════════════════════════════════════════════════ -->
+        <!-- ══ Toolbar (top) ══════════════════════════════════════════════════
+             Two controls share the bar: address bar (stretches) and search box
+             (fixed width). Both sit in a Grid so star-sizing works.
+        ══════════════════════════════════════════════════════════════════════ -->
         <Border DockPanel.Dock="Top"
                 Background="#1E1E2E"
                 Padding="10,8">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto"
-                  RowDefinitions="Auto">
+            <Grid ColumnDefinitions="Auto,*,180,Auto">
 
-                <!-- Column 0: static "Path:" label -->
+                <!-- Column 0: static label -->
                 <TextBlock Grid.Column="0"
                            Text="Path:"
                            VerticalAlignment="Center"
                            Foreground="#CDD6F4"
                            Margin="0,0,8,0"/>
 
-                <!-- Column 1: path entry — two-way binding keeps CurrentPath in sync -->
+                <!-- Column 1: address bar — fills all spare width -->
                 <TextBox Grid.Column="1"
                          Text="{Binding CurrentPath}"
                          VerticalContentAlignment="Center"
                          FontFamily="Monospace"
                          Margin="0,0,8,0"/>
 
-                <!-- Column 2: action button — bound to the generated ScanCommand -->
-                <Button Grid.Column="2"
-                        Content="Scan"
-                        Command="{Binding ScanCommand}"
-                        Padding="16,4"
-                        Margin="0,0,8,0"/>
+                <!--
+                    Column 2: search box — fixed 180 px.
+                    Watermark is Avalonia's equivalent of HTML placeholder.
+                    Text is two-way bound; OnSearchTextChanged in the ViewModel
+                    refilters Entries every time the user types a character.
+                -->
+                <TextBox Grid.Column="2"
+                         Text="{Binding SearchText}"
+                         PlaceholderText="Search…"
+                         VerticalContentAlignment="Center"
+                         Margin="0,0,8,0"/>
 
-                <!-- Column 3: status feedback — one-way binding from StatusText -->
-                <TextBlock Grid.Column="3"
-                           Text="{Binding StatusText}"
-                           VerticalAlignment="Center"
-                           Foreground="#6C7086"
-                           FontSize="12"/>
+                <!-- Column 3: Navigate button — triggers NavigateCommand -->
+                <Button Grid.Column="3"
+                        Content="Go"
+                        Command="{Binding NavigateCommand}"
+                        Padding="16,4"/>
             </Grid>
         </Border>
 
-        <!-- ══ Column headers ════════════════════════════════════════════════ -->
-        <Border DockPanel.Dock="Top"
+        <!-- ══ Status bar (bottom) ════════════════════════════════════════════
+             Docked to Bottom so it is measured before the main content area.
+             Two TextBlocks: count on the left, selection detail on the right.
+        ══════════════════════════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Bottom"
                 Background="#181825"
-                Padding="10,5">
-            <Grid ColumnDefinitions="*,90,145,70">
-                <TextBlock Grid.Column="0" Text="Name"
-                           Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"/>
-                <TextBlock Grid.Column="1" Text="Size"
-                           Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
-                           HorizontalAlignment="Right"/>
-                <TextBlock Grid.Column="2" Text="Modified"
-                           Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
-                           HorizontalAlignment="Right"/>
-                <TextBlock Grid.Column="3" Text="Ext"
-                           Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
-                           HorizontalAlignment="Center"/>
+                Padding="10,4">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding FileCountText}"
+                           Foreground="#A6ADC8"
+                           FontSize="11"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding SelectionText}"
+                           Foreground="#89B4FA"
+                           FontSize="11"
+                           FontFamily="Monospace"
+                           VerticalAlignment="Center"/>
             </Grid>
         </Border>
 
-        <!-- ══ File list ═════════════════════════════════════════════════════
-             ItemsControl renders one item per FileSystemEntry in FileList.ItemsSource.
-             DataTemplate describes the visual for *each* item.
-             {Binding PropertyName} reads a property from the current item object.
-        ═══════════════════════════════════════════════════════════════════════ -->
-        <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding Entries}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="models:FileSystemEntry">
-                        <Border Padding="10,1">
+        <!-- ══ Main content: two-pane layout ══════════════════════════════════
+             A Grid with three columns:
+               0  — left pane  (starts at 220 px, user can drag)
+               1  — splitter   (4 px drag handle)
+               2  — right pane (takes all remaining space)
+
+             GridSplitter sits in column 1 and adjusts columns 0 and 2 as the
+             user drags. ResizeDirection="Columns" is required; without it the
+             splitter defaults to resizing rows.
+        ══════════════════════════════════════════════════════════════════════ -->
+        <Grid ColumnDefinitions="220,4,*">
+
+            <!-- ── Left pane: directory TreeView ──────────────────────────── -->
+            <Border Grid.Column="0" Background="#181825">
+                <!--
+                    TreeView renders a hierarchical list. ItemsSource provides
+                    the root-level nodes (DirectoryTree from the ViewModel).
+
+                    HierarchicalDataTemplate is the key difference from a plain
+                    DataTemplate: its ItemsSource attribute tells Avalonia which
+                    property on each node contains that node's children. Avalonia
+                    recurses automatically — no depth limit, no manual looping.
+
+                    SelectionChanged is wired to code-behind (MainWindow.axaml.cs)
+                    because the handler needs the selected node object to call
+                    node.LoadChildren() — a UI-layer concern not appropriate for
+                    the ViewModel directly.
+                -->
+                <TreeView x:Name="DirectoryTreeView"
+                          ItemsSource="{Binding DirectoryTree}"
+                          SelectionChanged="OnTreeSelectionChanged"
+                          Background="Transparent">
+                    <!--
+                        TreeDataTemplate is Avalonia 11+'s name for what WPF calls
+                        HierarchicalDataTemplate. The ItemsSource attribute tells
+                        Avalonia which property on each node contains its children;
+                        the template body describes how to render the node itself.
+                    -->
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate DataType="models:DirectoryNode"
+                                          ItemsSource="{Binding Children}">
+                            <TextBlock Text="{Binding Name}"
+                                       FontSize="12"
+                                       Padding="2,1"/>
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </Border>
+
+            <!-- ── Splitter ────────────────────────────────────────────────── -->
+            <!--
+                GridSplitter must be in its own column (column 1 here).
+                It resizes the adjacent columns when dragged.
+                Width/Height are constrained by the column/row definitions.
+            -->
+            <GridSplitter Grid.Column="1"
+                          ResizeDirection="Columns"
+                          Background="#313244"
+                          HorizontalAlignment="Stretch"/>
+
+            <!-- ── Right pane: file list ───────────────────────────────────── -->
+            <!--
+                DockPanel inside the right column so the column header can be
+                docked to the top and the ListBox fills the rest.
+            -->
+            <DockPanel Grid.Column="2">
+
+                <!-- Column headers — must match the Grid inside each ListBox item -->
+                <Border DockPanel.Dock="Top"
+                        Background="#181825"
+                        Padding="10,5">
+                    <Grid ColumnDefinitions="*,90,145,70">
+                        <TextBlock Grid.Column="0" Text="Name"
+                                   Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1" Text="Size"
+                                   Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                                   HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="2" Text="Modified"
+                                   Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                                   HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="3" Text="Ext"
+                                   Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!--
+                    ListBox rather than ItemsControl because we need SelectedItem
+                    two-way binding for the status bar's selection info.
+
+                    The Styles block overrides the default ListBoxItem padding so
+                    each row's inner Grid aligns with the header Grid above.
+                    HorizontalContentAlignment="Stretch" is required — without it
+                    the Grid inside each item would shrink to its content width
+                    instead of filling the full row.
+                -->
+                <ListBox ItemsSource="{Binding Entries}"
+                         SelectedItem="{Binding SelectedEntry}"
+                         Background="Transparent">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Padding" Value="10,2"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </ListBox.Styles>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="models:FileSystemEntry">
                             <Grid ColumnDefinitions="*,90,145,70">
 
-                                <!-- DisplayName already contains leading spaces for indent -->
                                 <TextBlock Grid.Column="0"
                                            Text="{Binding DisplayName}"
                                            FontFamily="Monospace"
                                            FontSize="12"/>
 
-                                <!-- DisplaySize formats bytes into KB/MB/GB -->
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding DisplaySize}"
                                            FontFamily="Monospace"
@@ -104,11 +202,6 @@
                                            HorizontalAlignment="Right"
                                            Foreground="#A6E3A1"/>
 
-                                <!--
-                                    StringFormat applies a C# format string to the bound value.
-                                    The extra {} at the start is an XAML escape so the parser
-                                    doesn't confuse {0:…} with a binding expression.
-                                -->
                                 <TextBlock Grid.Column="2"
                                            Text="{Binding LastModified, StringFormat='{}{0:MM/dd/yy HH:mm}'}"
                                            FontFamily="Monospace"
@@ -116,7 +209,6 @@
                                            HorizontalAlignment="Right"
                                            Foreground="#89DCEB"/>
 
-                                <!-- Extension is "" for directories, ".txt" etc. for files -->
                                 <TextBlock Grid.Column="3"
                                            Text="{Binding Extension}"
                                            FontFamily="Monospace"
@@ -124,11 +216,11 @@
                                            HorizontalAlignment="Center"
                                            Foreground="#89B4FA"/>
                             </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
 
+            </DockPanel>
+        </Grid>
     </DockPanel>
 </Window>
