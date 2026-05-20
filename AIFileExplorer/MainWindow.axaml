@@ -15,8 +15,11 @@
     -->
     <Window.KeyBindings>
         <KeyBinding Gesture="Ctrl+C" Command="{Binding CopyCommand}"/>
+        <KeyBinding Gesture="Cmd+C" Command="{Binding CopyCommand}"/>
         <KeyBinding Gesture="Ctrl+X" Command="{Binding CutCommand}"/>
+        <KeyBinding Gesture="Cmd+X" Command="{Binding CutCommand}"/>
         <KeyBinding Gesture="Ctrl+V" Command="{Binding PasteCommand}"/>
+        <KeyBinding Gesture="Cmd+V" Command="{Binding PasteCommand}"/>
         <KeyBinding Gesture="Delete" Command="{Binding DeleteCommand}"/>
         <KeyBinding Gesture="F2"     Command="{Binding RenameCommand}"/>
     </Window.KeyBindings>
