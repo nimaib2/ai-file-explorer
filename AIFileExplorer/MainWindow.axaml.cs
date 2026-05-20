@@ -1,5 +1,4 @@
 using Avalonia.Controls;
-using AIFileExplorer.Models;
 using AIFileExplorer.ViewModels;
 
 namespace AIFileExplorer;
@@ -16,29 +15,18 @@ public partial class MainWindow : Window
 
     // ── TreeView selection ─────────────────────────────────────────────────────
     //
-    // This handler lives in code-behind rather than the ViewModel for two reasons:
+    // Expansion is now fully handled by the IsExpanded binding in the AXAML
+    // style — no LoadChildren() call needed here anymore.
     //
-    //   1. It has a UI concern: calling node.LoadChildren() is about lazily
-    //      populating tree nodes — that's a View-layer decision about how much
-    //      data to load based on user interaction with a specific control.
-    //
-    //   2. SelectionChangedEventArgs gives us the actual DirectoryNode object
-    //      directly, whereas a RelayCommand would need extra plumbing to receive
-    //      a command parameter from the TreeView.
-    //
-    // After the UI concern is handled, everything else is delegated to the ViewModel.
+    // This handler's only remaining job is to tell the ViewModel which
+    // directory was selected so it can populate the right-hand file list.
 
     private void OnTreeSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (e.AddedItems.Count == 0) return;
-        if (e.AddedItems[0] is not DirectoryNode node) return;
-        if (string.IsNullOrEmpty(node.FullPath)) return;   // guard against Placeholder
+        if (e.AddedItems[0] is not DirectoryNodeViewModel node) return;
+        if (string.IsNullOrEmpty(node.FullPath)) return;  // guard: Placeholder clicked
 
-        // Lazy-load this node's subdirectory children so they appear when the
-        // user expands it next. Idempotent — safe to call on every selection.
-        node.LoadChildren();
-
-        // Hand off to the ViewModel for all data/state concerns.
         ViewModel.SelectDirectory(node.FullPath);
     }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -13,58 +12,48 @@ namespace AIFileExplorer.ViewModels;
 public partial class MainWindowViewModel : ObservableObject
 {
     private readonly FileSystemService _fs = new();
-
-    // Full unfiltered list for the currently selected directory.
-    // Never exposed to the View directly — Entries is the filtered projection.
     private List<FileSystemEntry> _allEntries = new();
+
+    // ── Composed ViewModels ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Owns the left-hand tree. Exposed as a property so the View can bind
+    /// directly to FileSystem.Roots without MainWindowViewModel re-exposing it.
+    /// </summary>
+    public FileSystemViewModel FileSystem { get; } = new();
 
     // ── Observable properties ──────────────────────────────────────────────────
 
-    /// <summary>Address bar — the path the user is typing or navigating to.</summary>
     [ObservableProperty]
     private string _currentPath =
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-    /// <summary>Search box text; filters the right-hand file list as you type.</summary>
     [ObservableProperty]
     private string _searchText = string.Empty;
 
-    /// <summary>Root nodes for the left-hand TreeView.</summary>
-    [ObservableProperty]
-    private ObservableCollection<DirectoryNode> _directoryTree = new();
-
-    /// <summary>Filtered file list for the right-hand pane.</summary>
     [ObservableProperty]
     private IReadOnlyList<FileSystemEntry>? _entries;
 
-    /// <summary>Currently selected row in the right-hand ListBox.</summary>
     [ObservableProperty]
     private FileSystemEntry? _selectedEntry;
 
-    /// <summary>Left side of the status bar: folder/file count after filtering.</summary>
     [ObservableProperty]
-    private string _fileCountText = "Enter a path and click Go.";
+    private string _fileCountText = "Select a folder in the tree.";
 
-    /// <summary>Right side of the status bar: details for the selected item.</summary>
     [ObservableProperty]
     private string _selectionText = string.Empty;
 
-    // ── [ObservableProperty] partial callbacks ─────────────────────────────────
-    // The toolkit's source generator calls OnXxxChanged(T) after every setter.
-    // Implementing the partial method here is the idiomatic way to react to a
-    // property change without wiring up a manual PropertyChanged subscription.
+    // ── Partial callbacks ──────────────────────────────────────────────────────
 
     partial void OnSearchTextChanged(string value)
     {
-        // Don't filter before the first Navigate() — tree is still empty.
-        if (DirectoryTree.Count == 0) return;
+        // Entries is null until the first directory is loaded; don't filter yet.
+        if (Entries is null) return;
         ApplyFilter();
     }
 
     partial void OnSelectedEntryChanged(FileSystemEntry? value)
     {
-        // All computation is done before SelectionText is assigned, satisfying
-        // the rule: ViewModel must be in a consistent state when PropertyChanged fires.
         SelectionText = value is null
             ? string.Empty
             : value.IsDirectory
@@ -75,10 +64,8 @@ public partial class MainWindowViewModel : ObservableObject
     // ── Commands ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Navigates to the path in the address bar.
-    /// Builds the left-hand tree and loads the directory's direct children
-    /// into the right-hand file list.
-    /// [RelayCommand] generates a NavigateCommand property bound by the Go button.
+    /// Navigates both panes to the path typed in the address bar.
+    /// Rebuilds the tree via FileSystemViewModel and reloads the right pane.
     /// </summary>
     [RelayCommand]
     private void Navigate()
@@ -92,31 +79,12 @@ public partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        // Build the root node. Use just the final folder name as the label,
-        // falling back to the full path for drive roots like "C:\".
-        var rootName = Path.GetFileName(path) is { Length: > 0 } n ? n : path;
-        var root     = new DirectoryNode(rootName, path);
-        root.LoadChildren();   // eagerly load one level so the tree isn't empty
-
-        // Mutate the existing collection instead of replacing it.
-        // The TreeView stays subscribed to the same ObservableCollection;
-        // CollectionChanged events push the update without needing a new binding.
-        DirectoryTree.Clear();
-        DirectoryTree.Add(root);
-
+        FileSystem.NavigateTo(path);
         LoadEntriesForPath(path);
     }
 
-    // ── Called from code-behind when a TreeView node is selected ──────────────
+    // ── Called from code-behind on tree selection ──────────────────────────────
 
-    /// <summary>
-    /// Loads the direct children of <paramref name="path"/> into the right pane
-    /// and syncs the address bar. Called by MainWindow.axaml.cs on tree selection.
-    ///
-    /// This is a public method rather than a command because the TreeView's
-    /// SelectionChanged event passes the selected node; a parameterised
-    /// RelayCommand could work but requires more wiring for this stage.
-    /// </summary>
     public void SelectDirectory(string path)
     {
         CurrentPath = path;
@@ -128,14 +96,12 @@ public partial class MainWindowViewModel : ObservableObject
     private void LoadEntriesForPath(string path)
     {
         _allEntries   = _fs.ListDirectory(path).ToList();
-        SelectedEntry = null;   // clear before populating — consistent state rule
+        SelectedEntry = null;
         ApplyFilter();
     }
 
     private void ApplyFilter()
     {
-        // Complete all computation before touching any observable property so
-        // that when PropertyChanged fires, the ViewModel is fully consistent.
         IReadOnlyList<FileSystemEntry> results = string.IsNullOrWhiteSpace(SearchText)
             ? _allEntries
             : _allEntries

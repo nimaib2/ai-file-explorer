@@ -4,7 +4,7 @@
         xmlns:vm="using:AIFileExplorer.ViewModels"
         x:Class="AIFileExplorer.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="AI File Explorer — Day 7: Two-Pane Layout"
+        Title="AI File Explorer — Day 9: Directory Tree"
         Width="1100" Height="680"
         MinWidth="700" MinHeight="400">
 
@@ -109,18 +109,30 @@
                     node.LoadChildren() — a UI-layer concern not appropriate for
                     the ViewModel directly.
                 -->
-                <TreeView x:Name="DirectoryTreeView"
-                          ItemsSource="{Binding DirectoryTree}"
+                <!--
+                    ItemsSource binds to FileSystem.Roots — the sub-ViewModel
+                    that owns the tree. The View reaches through the dot without
+                    any extra wiring in MainWindowViewModel.
+
+                    The Styles block binds TreeViewItem.IsExpanded two-way to
+                    DirectoryNodeViewModel.IsExpanded. When the user clicks the
+                    expand arrow, Avalonia sets IsExpanded = true on the item
+                    container; the binding propagates that back to the ViewModel
+                    property, which triggers OnIsExpandedChanged → LoadChildren().
+                    This is the expand-triggered lazy loading for Day 9.
+                -->
+                <TreeView ItemsSource="{Binding FileSystem.Roots}"
                           SelectionChanged="OnTreeSelectionChanged"
                           Background="Transparent">
-                    <!--
-                        TreeDataTemplate is Avalonia 11+'s name for what WPF calls
-                        HierarchicalDataTemplate. The ItemsSource attribute tells
-                        Avalonia which property on each node contains its children;
-                        the template body describes how to render the node itself.
-                    -->
+                    <TreeView.Styles>
+                        <Style Selector="TreeViewItem"
+                               x:DataType="vm:DirectoryNodeViewModel">
+                            <Setter Property="IsExpanded"
+                                    Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        </Style>
+                    </TreeView.Styles>
                     <TreeView.ItemTemplate>
-                        <TreeDataTemplate DataType="models:DirectoryNode"
+                        <TreeDataTemplate DataType="vm:DirectoryNodeViewModel"
                                           ItemsSource="{Binding Children}">
                             <TextBlock Text="{Binding Name}"
                                        FontSize="12"
