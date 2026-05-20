@@ -4,9 +4,22 @@
         xmlns:vm="using:AIFileExplorer.ViewModels"
         x:Class="AIFileExplorer.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="AI File Explorer — Day 9: Directory Tree"
+        Title="AI File Explorer — Day 11: File Operations"
         Width="1100" Height="680"
         MinWidth="700" MinHeight="400">
+
+    <!--
+        KeyBindings wire gestures to ViewModel commands globally for the window.
+        InputGesture on MenuItem (below) only shows the hint text in the menu —
+        it does NOT handle the keystroke. These KeyBindings do the actual work.
+    -->
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+C" Command="{Binding CopyCommand}"/>
+        <KeyBinding Gesture="Ctrl+X" Command="{Binding CutCommand}"/>
+        <KeyBinding Gesture="Ctrl+V" Command="{Binding PasteCommand}"/>
+        <KeyBinding Gesture="Delete" Command="{Binding DeleteCommand}"/>
+        <KeyBinding Gesture="F2"     Command="{Binding RenameCommand}"/>
+    </Window.KeyBindings>
 
     <!--
         DockPanel is the outermost container. Children docked to Top/Bottom are
@@ -191,7 +204,43 @@
                 -->
                 <ListBox ItemsSource="{Binding Entries}"
                          SelectedItem="{Binding SelectedEntry}"
-                         Background="Transparent">
+                         Background="Transparent"
+                         DoubleTapped="OnFileDoubleTapped">
+                    <!--
+                        ContextMenu attaches to the ListBox as a whole.
+                        x:DataType is required for compiled bindings because
+                        ContextMenu is a popup — it's not in the visual tree,
+                        so it can't inherit x:DataType from the Window element.
+                        Commands with CanExecute = HasSelection are automatically
+                        greyed out when nothing is selected.
+
+                        InputGesture on each MenuItem shows the keyboard hint
+                        in the menu label. The actual shortcut handling is done
+                        by Window.KeyBindings above.
+                    -->
+                    <ListBox.ContextMenu>
+                        <ContextMenu x:DataType="vm:MainWindowViewModel">
+                            <MenuItem Header="Open"
+                                      Command="{Binding OpenCommand}"/>
+                            <Separator/>
+                            <MenuItem Header="Copy"
+                                      Command="{Binding CopyCommand}"
+                                      InputGesture="Ctrl+C"/>
+                            <MenuItem Header="Cut"
+                                      Command="{Binding CutCommand}"
+                                      InputGesture="Ctrl+X"/>
+                            <MenuItem Header="Paste"
+                                      Command="{Binding PasteCommand}"
+                                      InputGesture="Ctrl+V"/>
+                            <Separator/>
+                            <MenuItem Header="Rename…"
+                                      Command="{Binding RenameCommand}"
+                                      InputGesture="F2"/>
+                            <MenuItem Header="Delete"
+                                      Command="{Binding DeleteCommand}"
+                                      InputGesture="Delete"/>
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
                     <ListBox.Styles>
                         <Style Selector="ListBoxItem">
                             <Setter Property="Padding" Value="10,2"/>

@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AIFileExplorer.Views.RenameDialog"
+        Title="Rename"
+        Width="360"
+        Height="130"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+    <DockPanel Margin="20">
+
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,12,0,0">
+            <Button Content="Cancel" Width="80" Click="OnCancel"/>
+            <!--
+                IsDefault="True" makes this button respond to the Enter key,
+                so the user can confirm by pressing Enter without clicking.
+            -->
+            <Button Content="Rename" Width="80" Click="OnRename" IsDefault="True"/>
+        </StackPanel>
+
+        <TextBox x:Name="NameBox" VerticalContentAlignment="Center"/>
+    </DockPanel>
+</Window>

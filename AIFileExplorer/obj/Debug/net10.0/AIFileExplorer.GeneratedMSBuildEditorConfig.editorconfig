@@ -34,3 +34,9 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [/Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer/MainWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer/Views/ConfirmDialog.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer/Views/RenameDialog.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
