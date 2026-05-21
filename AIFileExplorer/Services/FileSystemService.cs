@@ -18,35 +18,40 @@ public class FileSystemService
     /// Returns the direct children of <paramref name="path"/>: subdirectories
     /// first (alphabetical), then files (alphabetical). Does not recurse.
     ///
-    /// Each permission-denied path is skipped gracefully rather than throwing,
-    /// because it is normal to encounter unreadable directories on macOS/Linux
-    /// (e.g. /private/var) and Windows (e.g. System Volume Information).
+    /// Returns a tuple so callers can show a friendly "access denied" message
+    /// when either the directory list or file list was blocked by the OS.
+    /// Using an eager List (not a lazy iterator) means we can detect the
+    /// access-denied condition and return it alongside the partial results.
     /// </summary>
-    public IEnumerable<FileSystemEntry> ListDirectory(string path)
+    public (List<FileSystemEntry> Entries, bool AccessDenied) ListDirectory(string path)
     {
         var dir = new DirectoryInfo(path);
-        if (!dir.Exists) yield break;
+        if (!dir.Exists) return (new List<FileSystemEntry>(), false);
 
-        // Collect both arrays upfront so a permission failure on one does not
-        // prevent the other from being returned.
-        DirectoryInfo[] subdirs = Array.Empty<DirectoryInfo>();
-        FileInfo[]      files   = Array.Empty<FileInfo>();
+        DirectoryInfo[] subdirs    = Array.Empty<DirectoryInfo>();
+        FileInfo[]      files      = Array.Empty<FileInfo>();
+        bool            accessDenied = false;
 
-        try { subdirs = dir.GetDirectories(); } catch (UnauthorizedAccessException) { }
-        try { files   = dir.GetFiles();       } catch (UnauthorizedAccessException) { }
+        try { subdirs = dir.GetDirectories(); }
+        catch (UnauthorizedAccessException) { accessDenied = true; }
+
+        try { files = dir.GetFiles(); }
+        catch (UnauthorizedAccessException) { accessDenied = true; }
+
+        var entries = new List<FileSystemEntry>(subdirs.Length + files.Length);
 
         // Directories first — matches the convention of most file explorers.
         foreach (var sub in subdirs.OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase))
-            yield return new FileSystemEntry
+            entries.Add(new FileSystemEntry
             {
                 Name         = sub.Name,
                 FullPath     = sub.FullName,
                 IsDirectory  = true,
                 LastModified = sub.LastWriteTime,
-            };
+            });
 
         foreach (var file in files.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
-            yield return new FileSystemEntry
+            entries.Add(new FileSystemEntry
             {
                 Name         = file.Name,
                 FullPath     = file.FullName,
@@ -54,6 +59,8 @@ public class FileSystemService
                 SizeBytes    = file.Length,
                 LastModified = file.LastWriteTime,
                 Extension    = file.Extension,
-            };
+            });
+
+        return (entries, accessDenied);
     }
 }

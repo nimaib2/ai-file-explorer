@@ -1,4 +1,5 @@
 using System;
+using AIFileExplorer.Services;
 
 namespace AIFileExplorer.Models;
 
@@ -18,10 +19,12 @@ public class FileSystemEntry
     // ── Computed display helpers (bound directly in AXAML) ───────────────────
 
     /// <summary>
-    /// "[DIR]" prefix for directories; six-space indent for files so names
-    /// align with the directory label in a monospace font.
+    /// Emoji icon for the entry: folder icon for directories, file-type icon
+    /// for known extensions, generic file icon for everything else.
     /// </summary>
-    public string DisplayName => (IsDirectory ? "[DIR] " : "      ") + Name;
+    public string Icon => IsDirectory
+        ? FileTypeIcons.Folder
+        : FileTypeIcons.ForExtension(Extension);
 
     /// <summary>
     /// Human-readable file size. Directories show "--" because summing

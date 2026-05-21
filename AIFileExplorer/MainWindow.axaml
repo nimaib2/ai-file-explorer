@@ -14,14 +14,16 @@
         it does NOT handle the keystroke. These KeyBindings do the actual work.
     -->
     <Window.KeyBindings>
-        <KeyBinding Gesture="Ctrl+C" Command="{Binding CopyCommand}"/>
-        <KeyBinding Gesture="Cmd+C" Command="{Binding CopyCommand}"/>
-        <KeyBinding Gesture="Ctrl+X" Command="{Binding CutCommand}"/>
-        <KeyBinding Gesture="Cmd+X" Command="{Binding CutCommand}"/>
-        <KeyBinding Gesture="Ctrl+V" Command="{Binding PasteCommand}"/>
-        <KeyBinding Gesture="Cmd+V" Command="{Binding PasteCommand}"/>
-        <KeyBinding Gesture="Delete" Command="{Binding DeleteCommand}"/>
-        <KeyBinding Gesture="F2"     Command="{Binding RenameCommand}"/>
+        <KeyBinding Gesture="Ctrl+C"  Command="{Binding CopyCommand}"/>
+        <KeyBinding Gesture="Cmd+C"   Command="{Binding CopyCommand}"/>
+        <KeyBinding Gesture="Ctrl+X"  Command="{Binding CutCommand}"/>
+        <KeyBinding Gesture="Cmd+X"   Command="{Binding CutCommand}"/>
+        <KeyBinding Gesture="Ctrl+V"  Command="{Binding PasteCommand}"/>
+        <KeyBinding Gesture="Cmd+V"   Command="{Binding PasteCommand}"/>
+        <KeyBinding Gesture="Delete"  Command="{Binding DeleteCommand}"/>
+        <KeyBinding Gesture="F2"      Command="{Binding RenameCommand}"/>
+        <KeyBinding Gesture="Back"    Command="{Binding NavigateUpCommand}"/>
+        <KeyBinding Gesture="Cmd+Up"  Command="{Binding NavigateUpCommand}"/>
     </Window.KeyBindings>
 
     <!--
@@ -39,36 +41,43 @@
         <Border DockPanel.Dock="Top"
                 Background="#1E1E2E"
                 Padding="10,8">
-            <Grid ColumnDefinitions="Auto,*,180,Auto">
+            <Grid ColumnDefinitions="Auto,Auto,*,180,Auto">
 
-                <!-- Column 0: static label -->
-                <TextBlock Grid.Column="0"
+                <!-- Column 0: Up button — navigates to parent directory -->
+                <Button Grid.Column="0"
+                        Content="↑"
+                        Command="{Binding NavigateUpCommand}"
+                        Padding="10,4"
+                        Margin="0,0,6,0"
+                        ToolTip.Tip="Go to parent folder (Backspace / Cmd+Up)"/>
+
+                <!-- Column 1: static label -->
+                <TextBlock Grid.Column="1"
                            Text="Path:"
                            VerticalAlignment="Center"
                            Foreground="#CDD6F4"
                            Margin="0,0,8,0"/>
 
-                <!-- Column 1: address bar — fills all spare width -->
-                <TextBox Grid.Column="1"
+                <!-- Column 2: address bar — fills all spare width -->
+                <TextBox Grid.Column="2"
                          Text="{Binding CurrentPath}"
                          VerticalContentAlignment="Center"
                          FontFamily="Monospace"
                          Margin="0,0,8,0"/>
 
                 <!--
-                    Column 2: search box — fixed 180 px.
-                    Watermark is Avalonia's equivalent of HTML placeholder.
+                    Column 3: search box — fixed 180 px.
                     Text is two-way bound; OnSearchTextChanged in the ViewModel
                     refilters Entries every time the user types a character.
                 -->
-                <TextBox Grid.Column="2"
+                <TextBox Grid.Column="3"
                          Text="{Binding SearchText}"
                          PlaceholderText="Search…"
                          VerticalContentAlignment="Center"
                          Margin="0,0,8,0"/>
 
-                <!-- Column 3: Navigate button — triggers NavigateCommand -->
-                <Button Grid.Column="3"
+                <!-- Column 4: Navigate button — triggers NavigateCommand -->
+                <Button Grid.Column="4"
                         Content="Go"
                         Command="{Binding NavigateCommand}"
                         Padding="16,4"/>
@@ -176,22 +185,50 @@
             -->
             <DockPanel Grid.Column="2">
 
-                <!-- Column headers — must match the Grid inside each ListBox item -->
+                <!--
+                    Column headers — flat Buttons so clicking sorts the list.
+                    CommandParameter passes the column name string to SortByCommand.
+                    The ViewModel appends ↑/↓ to the active column's header text.
+                    Column widths must match the Grid inside each ListBox item.
+                -->
                 <Border DockPanel.Dock="Top"
                         Background="#181825"
-                        Padding="10,5">
-                    <Grid ColumnDefinitions="*,90,145,70">
-                        <TextBlock Grid.Column="0" Text="Name"
-                                   Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"/>
-                        <TextBlock Grid.Column="1" Text="Size"
-                                   Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
-                                   HorizontalAlignment="Right"/>
-                        <TextBlock Grid.Column="2" Text="Modified"
-                                   Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
-                                   HorizontalAlignment="Right"/>
-                        <TextBlock Grid.Column="3" Text="Ext"
-                                   Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
-                                   HorizontalAlignment="Center"/>
+                        Padding="10,0">
+                    <Grid ColumnDefinitions="28,*,90,145,70">
+                        <!-- Column 0: icon gutter — no header needed -->
+                        <TextBlock Grid.Column="0"/>
+
+                        <Button Grid.Column="1"
+                                Content="{Binding NameHeader}"
+                                Command="{Binding SortByCommand}"
+                                CommandParameter="Name"
+                                Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                                Background="Transparent" BorderThickness="0"
+                                Padding="0,5" HorizontalContentAlignment="Left"/>
+                        <Button Grid.Column="2"
+                                Content="{Binding SizeHeader}"
+                                Command="{Binding SortByCommand}"
+                                CommandParameter="Size"
+                                Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                                Background="Transparent" BorderThickness="0"
+                                Padding="0,5" HorizontalContentAlignment="Right"
+                                HorizontalAlignment="Stretch"/>
+                        <Button Grid.Column="3"
+                                Content="{Binding ModifiedHeader}"
+                                Command="{Binding SortByCommand}"
+                                CommandParameter="Modified"
+                                Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                                Background="Transparent" BorderThickness="0"
+                                Padding="0,5" HorizontalContentAlignment="Right"
+                                HorizontalAlignment="Stretch"/>
+                        <Button Grid.Column="4"
+                                Content="{Binding ExtHeader}"
+                                Command="{Binding SortByCommand}"
+                                CommandParameter="Ext"
+                                Foreground="#A6ADC8" FontSize="11" FontWeight="SemiBold"
+                                Background="Transparent" BorderThickness="0"
+                                Padding="0,5" HorizontalContentAlignment="Center"
+                                HorizontalAlignment="Stretch"/>
                     </Grid>
                 </Border>
 
@@ -252,32 +289,42 @@
                     </ListBox.Styles>
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="models:FileSystemEntry">
-                            <Grid ColumnDefinitions="*,90,145,70">
+                            <Grid ColumnDefinitions="28,*,90,145,70">
 
+                                <!-- Icon column: emoji for file type or folder -->
                                 <TextBlock Grid.Column="0"
-                                           Text="{Binding DisplayName}"
-                                           FontFamily="Monospace"
-                                           FontSize="12"/>
+                                           Text="{Binding Icon}"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"/>
 
                                 <TextBlock Grid.Column="1"
+                                           Text="{Binding Name}"
+                                           FontFamily="Monospace"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Column="2"
                                            Text="{Binding DisplaySize}"
                                            FontFamily="Monospace"
                                            FontSize="12"
                                            HorizontalAlignment="Right"
+                                           VerticalAlignment="Center"
                                            Foreground="#A6E3A1"/>
 
-                                <TextBlock Grid.Column="2"
+                                <TextBlock Grid.Column="3"
                                            Text="{Binding LastModified, StringFormat='{}{0:MM/dd/yy HH:mm}'}"
                                            FontFamily="Monospace"
                                            FontSize="12"
                                            HorizontalAlignment="Right"
+                                           VerticalAlignment="Center"
                                            Foreground="#89DCEB"/>
 
-                                <TextBlock Grid.Column="3"
+                                <TextBlock Grid.Column="4"
                                            Text="{Binding Extension}"
                                            FontFamily="Monospace"
                                            FontSize="12"
                                            HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
                                            Foreground="#89B4FA"/>
                             </Grid>
                         </DataTemplate>

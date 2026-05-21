@@ -63,6 +63,23 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string _selectionText = string.Empty;
 
+    // Sort state — not individual ObservableProperties because we update both
+    // atomically and then call ApplyFilter once. Header labels are computed
+    // properties that show the active sort column and direction arrow.
+    private string _sortColumn    = "Name";
+    private bool   _sortAscending = true;
+
+    public string NameHeader     => SortHeader("Name");
+    public string SizeHeader     => SortHeader("Size");
+    public string ModifiedHeader => SortHeader("Modified");
+    public string ExtHeader      => SortHeader("Ext");
+
+    private string SortHeader(string col)
+    {
+        if (_sortColumn != col) return col;
+        return col + (_sortAscending ? " ↑" : " ↓");
+    }
+
     // ── Partial callbacks ──────────────────────────────────────────────────────
 
     partial void OnSearchTextChanged(string value)
@@ -80,10 +97,20 @@ public partial class MainWindowViewModel : ObservableObject
                 : $"{value.Name}  ·  {value.DisplaySize}  ·  {value.LastModified:MM/dd/yy HH:mm}";
     }
 
+    partial void OnCurrentPathChanged(string value)
+    {
+        NavigateUpCommand.NotifyCanExecuteChanged();
+    }
+
     // ── CanExecute helpers ─────────────────────────────────────────────────────
 
     private bool HasSelection() => SelectedEntry is not null;
     private bool HasClipboard() => _clipboardEntry is not null;
+    private bool HasParent()
+    {
+        if (string.IsNullOrEmpty(CurrentPath)) return false;
+        return Path.GetDirectoryName(CurrentPath) is not null;
+    }
 
     // ── Navigation ─────────────────────────────────────────────────────────────
 
@@ -99,6 +126,38 @@ public partial class MainWindowViewModel : ObservableObject
         }
         FileSystem.NavigateTo(path);
         LoadEntriesForPath(path);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasParent))]
+    private void NavigateUp()
+    {
+        var parent = Path.GetDirectoryName(CurrentPath);
+        if (parent is null) return;
+        SelectDirectory(parent);
+    }
+
+    /// <summary>
+    /// Toggles sort direction when the same column is clicked twice;
+    /// switches to the new column ascending otherwise.
+    /// </summary>
+    [RelayCommand]
+    private void SortBy(string column)
+    {
+        if (_sortColumn == column)
+            _sortAscending = !_sortAscending;
+        else
+        {
+            _sortColumn    = column;
+            _sortAscending = true;
+        }
+
+        // Notify all four header properties so the arrow indicator updates.
+        OnPropertyChanged(nameof(NameHeader));
+        OnPropertyChanged(nameof(SizeHeader));
+        OnPropertyChanged(nameof(ModifiedHeader));
+        OnPropertyChanged(nameof(ExtHeader));
+
+        ApplyFilter();
     }
 
     public void SelectDirectory(string path)
@@ -214,23 +273,44 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void LoadEntriesForPath(string path)
     {
-        _allEntries   = _fs.ListDirectory(path).ToList();
+        var (entries, accessDenied) = _fs.ListDirectory(path);
+        _allEntries   = entries;
         SelectedEntry = null;
-        ApplyFilter();
+        ApplyFilter(accessDenied);
     }
 
-    private void ApplyFilter()
+    private void ApplyFilter(bool accessDenied = false)
     {
-        IReadOnlyList<FileSystemEntry> results = string.IsNullOrWhiteSpace(SearchText)
+        IEnumerable<FileSystemEntry> results = string.IsNullOrWhiteSpace(SearchText)
             ? _allEntries
-            : _allEntries
-                .Where(e => e.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            : _allEntries.Where(e =>
+                e.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
 
-        var fileCount = results.Count(x => !x.IsDirectory);
-        var dirCount  = results.Count(x =>  x.IsDirectory);
+        // Always keep directories above files, then sort within each group.
+        var ordered = results.OrderByDescending(e => e.IsDirectory);
+        results = _sortColumn switch
+        {
+            "Size"     => _sortAscending
+                              ? ordered.ThenBy(e => e.SizeBytes)
+                              : ordered.ThenByDescending(e => e.SizeBytes),
+            "Modified" => _sortAscending
+                              ? ordered.ThenBy(e => e.LastModified)
+                              : ordered.ThenByDescending(e => e.LastModified),
+            "Ext"      => _sortAscending
+                              ? ordered.ThenBy(e => e.Extension, StringComparer.OrdinalIgnoreCase)
+                              : ordered.ThenByDescending(e => e.Extension, StringComparer.OrdinalIgnoreCase),
+            _          => _sortAscending    // "Name" (default)
+                              ? ordered.ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+                              : ordered.ThenByDescending(e => e.Name, StringComparer.OrdinalIgnoreCase),
+        };
 
-        Entries       = results;
-        FileCountText = $"{dirCount} folders,  {fileCount} files";
+        var list      = results.ToList();
+        var fileCount = list.Count(x => !x.IsDirectory);
+        var dirCount  = list.Count(x =>  x.IsDirectory);
+
+        Entries       = list;
+        FileCountText = accessDenied
+            ? $"{dirCount} folders,  {fileCount} files  ⚠ Some items could not be read (permission denied)"
+            : $"{dirCount} folders,  {fileCount} files";
     }
 }
