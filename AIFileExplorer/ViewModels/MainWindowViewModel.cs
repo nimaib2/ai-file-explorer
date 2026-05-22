@@ -57,6 +57,12 @@ public partial class MainWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(OpenCommand))]
     private FileSystemEntry? _selectedEntry;
 
+    // Bound to TreeView.SelectedItem so tree-click navigation stays in the VM.
+    // Typed as object? because TreeView.SelectedItem is object? — the callback
+    // does the safe cast so compiled bindings don't need a type annotation.
+    [ObservableProperty]
+    private object? _selectedTreeNode;
+
     [ObservableProperty]
     private string _fileCountText = "Select a folder in the tree.";
 
@@ -100,6 +106,13 @@ public partial class MainWindowViewModel : ObservableObject
     partial void OnCurrentPathChanged(string value)
     {
         NavigateUpCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnSelectedTreeNodeChanged(object? value)
+    {
+        if (value is not DirectoryNodeViewModel node) return;
+        if (string.IsNullOrEmpty(node.FullPath)) return;
+        SelectDirectory(node.FullPath);
     }
 
     // ── CanExecute helpers ─────────────────────────────────────────────────────

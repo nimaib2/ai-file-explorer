@@ -20,20 +20,10 @@ public partial class MainWindow : Window
         DataContext = new MainWindowViewModel(new DialogService(this));
     }
 
-    // ── TreeView selection ─────────────────────────────────────────────────────
-
-    private void OnTreeSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (e.AddedItems.Count == 0) return;
-        if (e.AddedItems[0] is not DirectoryNodeViewModel node) return;
-        if (string.IsNullOrEmpty(node.FullPath)) return;
-
-        ViewModel.SelectDirectory(node.FullPath);
-    }
-
     // ── File list double-tap ───────────────────────────────────────────────────
-    // Double-tapping an entry opens it: navigates into directories,
-    // launches files with their OS default application.
+    // Converts the Avalonia TappedEventArgs UI event into a ViewModel command.
+    // DoubleTapped has no native command binding in Avalonia without a behavior
+    // package, so this one-line bridge stays in code-behind.
 
     private void OnFileDoubleTapped(object? sender, TappedEventArgs e)
         => ViewModel.OpenCommand.Execute(null);

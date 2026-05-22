@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "VD5JoItc5LA=",
+  "dgSpecHash": "/e3E2wHh7vE=",
   "success": true,
   "projectFilePath": "/Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer/AIFileExplorer.csproj",
   "expectedPackageFiles": [
@@ -34,14 +34,7 @@
     "/Users/nimaibelur/.nuget/packages/skiasharp.nativeassets.macos/3.119.4-preview.1.1/skiasharp.nativeassets.macos.3.119.4-preview.1.1.nupkg.sha512",
     "/Users/nimaibelur/.nuget/packages/skiasharp.nativeassets.webassembly/3.119.4-preview.1.1/skiasharp.nativeassets.webassembly.3.119.4-preview.1.1.nupkg.sha512",
     "/Users/nimaibelur/.nuget/packages/skiasharp.nativeassets.win32/3.119.4-preview.1.1/skiasharp.nativeassets.win32.3.119.4-preview.1.1.nupkg.sha512",
-    "/Users/nimaibelur/.nuget/packages/tmds.dbus.protocol/0.92.0/tmds.dbus.protocol.0.92.0.nupkg.sha512",
-    "/Users/nimaibelur/.nuget/packages/xunit/2.9.3/xunit.2.9.3.nupkg.sha512",
-    "/Users/nimaibelur/.nuget/packages/xunit.abstractions/2.0.3/xunit.abstractions.2.0.3.nupkg.sha512",
-    "/Users/nimaibelur/.nuget/packages/xunit.analyzers/1.18.0/xunit.analyzers.1.18.0.nupkg.sha512",
-    "/Users/nimaibelur/.nuget/packages/xunit.assert/2.9.3/xunit.assert.2.9.3.nupkg.sha512",
-    "/Users/nimaibelur/.nuget/packages/xunit.core/2.9.3/xunit.core.2.9.3.nupkg.sha512",
-    "/Users/nimaibelur/.nuget/packages/xunit.extensibility.core/2.9.3/xunit.extensibility.core.2.9.3.nupkg.sha512",
-    "/Users/nimaibelur/.nuget/packages/xunit.extensibility.execution/2.9.3/xunit.extensibility.execution.2.9.3.nupkg.sha512"
+    "/Users/nimaibelur/.nuget/packages/tmds.dbus.protocol/0.92.0/tmds.dbus.protocol.0.92.0.nupkg.sha512"
   ],
   "logs": []
 }

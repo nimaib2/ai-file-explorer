@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="AIFileExplorer.Tests/AIFileExplorer.Tests.csproj" />
+  <Project Path="AIFileExplorer/AIFileExplorer.csproj" />
+</Solution>

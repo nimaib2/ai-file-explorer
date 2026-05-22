@@ -147,7 +147,7 @@
                     This is the expand-triggered lazy loading for Day 9.
                 -->
                 <TreeView ItemsSource="{Binding FileSystem.Roots}"
-                          SelectionChanged="OnTreeSelectionChanged"
+                          SelectedItem="{Binding SelectedTreeNode, Mode=TwoWay}"
                           Background="Transparent">
                     <TreeView.Styles>
                         <Style Selector="TreeViewItem"

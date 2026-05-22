@@ -197,7 +197,3 @@
 /usr/local/share/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.8/ref/net10.0/System.Xml.XPath.XDocument.dll
 /Users/nimaibelur/.nuget/packages/tmds.dbus.protocol/0.92.0/lib/net9.0/Tmds.DBus.Protocol.dll
 /usr/local/share/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.8/ref/net10.0/WindowsBase.dll
-/Users/nimaibelur/.nuget/packages/xunit.abstractions/2.0.3/lib/netstandard2.0/xunit.abstractions.dll
-/Users/nimaibelur/.nuget/packages/xunit.assert/2.9.3/lib/net6.0/xunit.assert.dll
-/Users/nimaibelur/.nuget/packages/xunit.extensibility.core/2.9.3/lib/netstandard1.1/xunit.core.dll
-/Users/nimaibelur/.nuget/packages/xunit.extensibility.execution/2.9.3/lib/netstandard1.1/xunit.execution.dotnet.dll
