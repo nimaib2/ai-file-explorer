@@ -91,3 +91,5 @@
 /Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer/obj/Debug/net10.0/AIFileExplorer.pdb
 /Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer/obj/Debug/net10.0/AIFileExplorer.genruntimeconfig.cache
 /Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer/obj/Debug/net10.0/ref/AIFileExplorer.dll
+/Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer/bin/Debug/net10.0/Anthropic.dll
+/Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer/bin/Debug/net10.0/Microsoft.Extensions.AI.Abstractions.dll

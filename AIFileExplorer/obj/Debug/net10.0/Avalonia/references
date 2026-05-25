@@ -1,3 +1,4 @@
+/Users/nimaibelur/.nuget/packages/anthropic/12.23.0/lib/net9.0/Anthropic.dll
 /Users/nimaibelur/.nuget/packages/avalonia/12.0.3/ref/net10.0/Avalonia.Base.dll
 /Users/nimaibelur/.nuget/packages/avalonia/12.0.3/ref/net10.0/Avalonia.Controls.dll
 /Users/nimaibelur/.nuget/packages/avalonia/12.0.3/ref/net10.0/Avalonia.DesignerSupport.dll
@@ -26,6 +27,7 @@
 /Users/nimaibelur/.nuget/packages/harfbuzzsharp/8.3.1.3/lib/net8.0/HarfBuzzSharp.dll
 /Users/nimaibelur/.nuget/packages/microcom.runtime/0.11.4/lib/net5.0/MicroCom.Runtime.dll
 /usr/local/share/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.8/ref/net10.0/Microsoft.CSharp.dll
+/Users/nimaibelur/.nuget/packages/microsoft.extensions.ai.abstractions/10.5.1/lib/net10.0/Microsoft.Extensions.AI.Abstractions.dll
 /Users/nimaibelur/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
 /Users/nimaibelur/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/lib/net8.0/Microsoft.Extensions.Logging.Abstractions.dll
 /Users/nimaibelur/.nuget/packages/microsoft.io.recyclablememorystream/3.0.1/lib/net6.0/Microsoft.IO.RecyclableMemoryStream.dll
