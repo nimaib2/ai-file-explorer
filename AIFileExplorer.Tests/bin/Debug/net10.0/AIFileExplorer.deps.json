@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v10.0": {
       "AIFileExplorer/1.0.0": {
         "dependencies": {
+          "Anthropic": "12.23.0",
           "Avalonia": "12.0.3",
           "Avalonia.Desktop": "12.0.3",
           "Avalonia.Fonts.Inter": "12.0.3",
@@ -17,6 +18,17 @@
         },
         "runtime": {
           "AIFileExplorer.dll": {}
+        }
+      },
+      "Anthropic/12.23.0": {
+        "dependencies": {
+          "Microsoft.Extensions.AI.Abstractions": "10.5.1"
+        },
+        "runtime": {
+          "lib/net9.0/Anthropic.dll": {
+            "assemblyVersion": "12.23.0.0",
+            "fileVersion": "12.23.0.0"
+          }
         }
       },
       "Avalonia/12.0.3": {
@@ -377,6 +389,14 @@
           }
         }
       },
+      "Microsoft.Extensions.AI.Abstractions/10.5.1": {
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.AI.Abstractions.dll": {
+            "assemblyVersion": "10.5.0.0",
+            "fileVersion": "10.500.126.25103"
+          }
+        }
+      },
       "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.0": {
         "runtime": {
           "lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
@@ -544,6 +564,13 @@
       "serviceable": false,
       "sha512": ""
     },
+    "Anthropic/12.23.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-lXjfsenNf8miOYi+Yu8oPntNwRmOm4KnMLnHhyeJEuFVrKiZ0KgUVsOYYvwJkcrg+L1GpMwB54yVleI5gPEiGA==",
+      "path": "anthropic/12.23.0",
+      "hashPath": "anthropic.12.23.0.nupkg.sha512"
+    },
     "Avalonia/12.0.3": {
       "type": "package",
       "serviceable": true,
@@ -683,6 +710,13 @@
       "sha512": "sha512-yZ8+Lgwo+KtRI29TB2mIOEMzV+csMJ+pKZg4YHReAP3vRewWLKKeYfrBDo5FS69rWnEbCfU3sbM+ZEQr+GDLtg==",
       "path": "microcom.runtime/0.11.4",
       "hashPath": "microcom.runtime.0.11.4.nupkg.sha512"
+    },
+    "Microsoft.Extensions.AI.Abstractions/10.5.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-nB0l3IlsVbNeUxsE7nZNb9GY8rP1OSeqpj0pseORPejt474HNKEauTWTLdSJPkSvPlRMxowZNMo6nyp7APAiSg==",
+      "path": "microsoft.extensions.ai.abstractions/10.5.1",
+      "hashPath": "microsoft.extensions.ai.abstractions.10.5.1.nupkg.sha512"
     },
     "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.0": {
       "type": "package",

@@ -176,3 +176,5 @@
 /Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer.Tests/obj/Debug/net10.0/AIFileExplorer.Tests.pdb
 /Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer.Tests/obj/Debug/net10.0/AIFileExplorer.Tests.genruntimeconfig.cache
 /Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer.Tests/obj/Debug/net10.0/ref/AIFileExplorer.Tests.dll
+/Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer.Tests/bin/Debug/net10.0/Anthropic.dll
+/Users/nimaibelur/Documents/GitHub/ai-file-explorer/project/ai-file-explorer/AIFileExplorer.Tests/bin/Debug/net10.0/Microsoft.Extensions.AI.Abstractions.dll
