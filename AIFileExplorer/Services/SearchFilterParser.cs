@@ -26,6 +26,13 @@ public static class SearchFilterParser
         if (string.IsNullOrWhiteSpace(json))
             return new SearchFilter();
 
+        // Claude sometimes wraps its response in markdown code fences despite
+        // being told not to. Extract the JSON object between the first { and last }.
+        var start = json.IndexOf('{');
+        var end   = json.LastIndexOf('}');
+        if (start >= 0 && end > start)
+            json = json[start..(end + 1)];
+
         JsonElement root;
         try
         {

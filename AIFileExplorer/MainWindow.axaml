@@ -4,7 +4,7 @@
         xmlns:vm="using:AIFileExplorer.ViewModels"
         x:Class="AIFileExplorer.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="AI File Explorer — Day 11: File Operations"
+        Title="AI File Explorer — Day 17: NL Search"
         Width="1100" Height="680"
         MinWidth="700" MinHeight="400">
 
@@ -81,6 +81,74 @@
                         Content="Go"
                         Command="{Binding NavigateCommand}"
                         Padding="16,4"/>
+            </Grid>
+        </Border>
+
+        <!-- ══ AI search bar ══════════════════════════════════════════════════
+             Separate band below the address bar.
+             Row 0: input + buttons.  Row 1: indeterminate progress bar
+             (3 px tall, only visible while IsSearching is true).
+        ══════════════════════════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Top"
+                Background="#181825"
+                Padding="10,6,10,4"
+                BorderBrush="#313244"
+                BorderThickness="0,1,0,0">
+            <Grid RowDefinitions="Auto,3">
+
+                <Grid Grid.Row="0"
+                      ColumnDefinitions="Auto,*,Auto,Auto">
+
+                    <TextBlock Grid.Column="0"
+                               Text="AI Search:"
+                               VerticalAlignment="Center"
+                               Foreground="#CBA6F7"
+                               FontWeight="SemiBold"
+                               Margin="0,0,8,0"/>
+
+                    <!--
+                        Two-way binding so Enter triggers the command via KeyBinding.
+                        PlaceholderText gives the user an example of the query format.
+                    -->
+                    <TextBox Grid.Column="1"
+                             Text="{Binding NlQueryText}"
+                             PlaceholderText="e.g. large PDFs from last month in Downloads"
+                             VerticalContentAlignment="Center"
+                             Margin="0,0,6,0">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Return"
+                                        Command="{Binding NlSearchCommand}"/>
+                        </TextBox.KeyBindings>
+                    </TextBox>
+
+                    <Button Grid.Column="2"
+                            Content="Search"
+                            Command="{Binding NlSearchCommand}"
+                            Padding="14,4"
+                            Margin="0,0,4,0"
+                            IsEnabled="{Binding !IsSearching}"/>
+
+                    <!--
+                        Clear button: visible only while showing results or searching,
+                        so it appears only when there is something to clear.
+                    -->
+                    <Button Grid.Column="3"
+                            Content="×"
+                            Command="{Binding ClearNlSearchCommand}"
+                            Padding="10,4"
+                            ToolTip.Tip="Clear search results"/>
+                </Grid>
+
+                <!--
+                    Indeterminate ProgressBar used as a spinner.
+                    IsVisible collapses it to zero height when not searching,
+                    so it takes no space at rest.
+                -->
+                <ProgressBar Grid.Row="1"
+                             IsIndeterminate="True"
+                             IsVisible="{Binding IsSearching}"
+                             Foreground="#CBA6F7"
+                             Margin="0,4,0,0"/>
             </Grid>
         </Border>
 

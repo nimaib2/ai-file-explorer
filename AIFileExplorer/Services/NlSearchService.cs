@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Anthropic;
@@ -53,11 +54,15 @@ public class NlSearchService
     /// </summary>
     public async Task<SearchFilter> ParseQueryAsync(string query)
     {
+        // Append today's date so Claude can resolve relative phrases like
+        // "last week" or "this month" to concrete ISO 8601 dates.
+        var system = SystemPrompt + $"\n\nToday's date is {DateTime.Today:yyyy-MM-dd}.";
+
         var response = await _client.Messages.Create(new MessageCreateParams
         {
             Model      = Model.ClaudeHaiku4_5,   // fast + cheap for structured extraction
             MaxTokens  = 512,
-            System     = SystemPrompt,
+            System     = system,
             Messages   = [new() { Role = Role.User, Content = query }],
         });
 

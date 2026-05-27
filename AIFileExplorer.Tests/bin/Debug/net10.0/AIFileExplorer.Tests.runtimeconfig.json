@@ -9,6 +9,7 @@
       "Avalonia.Diagnostics.Diagnostic.IsEnabled": true,
       "MSTest.EnableParentProcessQuery": true,
       "MVVMTOOLKIT_ENABLE_INOTIFYPROPERTYCHANGING_SUPPORT": true,
+      "System.Diagnostics.Metrics.Meter.IsSupported": true,
       "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
     }
   }

@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AIFileExplorer.Models;
@@ -12,11 +15,17 @@ namespace AIFileExplorer.ViewModels;
 
 public partial class MainWindowViewModel : ObservableObject
 {
-    private readonly FileSystemService   _fs;
+    private readonly FileSystemService    _fs;
     private readonly FileOperationService _fileOps;
-    private readonly IDialogService      _dialogs;
+    private readonly IDialogService       _dialogs;
+    private readonly NlSearchService      _nlSearch  = new();
+    private readonly FileSearchEngine     _searchEngine = new();
 
-    private List<FileSystemEntry> _allEntries = new();
+    // Cancelled and replaced whenever a new NL search starts.
+    private CancellationTokenSource? _searchCts;
+
+    private List<FileSystemEntry> _allEntries     = new();
+    private List<FileSystemEntry> _searchResults  = new();
 
     // Clipboard state — not observable because the View never displays it.
     // PasteCommand.CanExecute depends on it via HasClipboard(); that CanExecute
@@ -68,6 +77,19 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _selectionText = string.Empty;
+
+    [ObservableProperty]
+    private string _nlQueryText = string.Empty;
+
+    /// <summary>True while the Claude call + file walk are in flight.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ClearNlSearchCommand))]
+    private bool _isSearching;
+
+    /// <summary>True when the right pane is showing NL search results, not a directory listing.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ClearNlSearchCommand))]
+    private bool _isShowingSearchResults;
 
     // Sort state — not individual ObservableProperties because we update both
     // atomically and then call ApplyFilter once. Header labels are computed
@@ -279,13 +301,139 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    // ── NL search ──────────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private async Task NlSearch()
+    {
+        if (string.IsNullOrWhiteSpace(NlQueryText)) return;
+
+        // Cancel any search already running.
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var ct = _searchCts.Token;
+
+        IsSearching = true;
+        Entries     = null;
+        FileCountText = "Asking Claude…";
+
+        try
+        {
+            var filter  = await _nlSearch.ParseQueryAsync(NlQueryText);
+            Debug.WriteLine($"[NlSearch] Filter — types:[{string.Join(",", filter.FileTypes ?? [])}] keywords:[{string.Join(",", filter.NameKeywords ?? [])}] dateFrom:{filter.DateFrom} dateTo:{filter.DateTo} sizeMin:{filter.SizeMinBytes} sizeMax:{filter.SizeMaxBytes} location:{filter.LocationHint}");
+            await Dispatcher.UIThread.InvokeAsync(() => FileCountText = "Searching files…");
+
+            var rootPath = ResolveRootPath(filter.LocationHint);
+            // LocationHint has been promoted to the root — clear it from the
+            // filter so the engine doesn't also apply it as a path-contains check.
+            var effectiveFilter = rootPath != CurrentPath
+                ? new SearchFilter
+                  {
+                      FileTypes    = filter.FileTypes,
+                      NameKeywords = filter.NameKeywords,
+                      DateFrom     = filter.DateFrom,
+                      DateTo       = filter.DateTo,
+                      SizeMinBytes = filter.SizeMinBytes,
+                      SizeMaxBytes = filter.SizeMaxBytes,
+                      LocationHint = null,
+                  }
+                : filter;
+
+            var query   = new FileQuery { RootPath = rootPath, Filter = effectiveFilter };
+            var results = await _searchEngine.SearchAsync(query, ct);
+
+            ct.ThrowIfCancellationRequested();
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _searchResults         = results;
+                IsShowingSearchResults  = true;
+                var n = results.Count;
+                FileCountText = $"Found {n} file{(n == 1 ? "" : "s")} matching \"{NlQueryText}\"";
+                ApplyFilter();
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // A new search superseded this one — leave the UI to the new one.
+        }
+        catch (Exception ex)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => FileCountText = $"Search error: {ex.Message}");
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => IsSearching = false);
+        }
+    }
+
+    private bool CanClearNlSearch() => IsShowingSearchResults || IsSearching;
+
+    [RelayCommand(CanExecute = nameof(CanClearNlSearch))]
+    private void ClearNlSearch()
+    {
+        _searchCts?.Cancel();
+        IsShowingSearchResults = false;
+        IsSearching            = false;
+        LoadEntriesForPath(CurrentPath);
+    }
+
     // ── Private helpers ────────────────────────────────────────────────────────
 
     // Reloads the current directory after any file operation that changes it.
     private void Refresh() => LoadEntriesForPath(CurrentPath);
 
+    /// <summary>
+    /// Tries to turn a location hint from Claude into a real directory path.
+    /// Priority: absolute path → ~/hint → known special-folder name → CurrentPath.
+    /// </summary>
+    private string ResolveRootPath(string? hint)
+    {
+        if (string.IsNullOrWhiteSpace(hint))
+            return CurrentPath;
+
+        // 1. Already an absolute path that exists.
+        if (Path.IsPathRooted(hint) && Directory.Exists(hint))
+            return hint;
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        // 2. Relative to home directory (e.g. "Downloads" → ~/Downloads).
+        var underHome = Path.Combine(home, hint);
+        if (Directory.Exists(underHome))
+            return underHome;
+
+        // 3. Known special-folder names (handles capitalisation variants).
+        var known = new Dictionary<string, Environment.SpecialFolder>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["downloads"]  = Environment.SpecialFolder.UserProfile, // no SpecialFolder enum for Downloads
+            ["documents"]  = Environment.SpecialFolder.MyDocuments,
+            ["desktop"]    = Environment.SpecialFolder.Desktop,
+            ["pictures"]   = Environment.SpecialFolder.MyPictures,
+            ["music"]      = Environment.SpecialFolder.MyMusic,
+            ["videos"]     = Environment.SpecialFolder.MyVideos,
+        };
+
+        // Downloads has no SpecialFolder entry — already covered by case 2 above.
+        if (known.TryGetValue(hint, out var folder) && folder != Environment.SpecialFolder.UserProfile)
+        {
+            var special = Environment.GetFolderPath(folder);
+            if (Directory.Exists(special))
+                return special;
+        }
+
+        // 4. Fall back — search from wherever the user is browsing.
+        return CurrentPath;
+    }
+
     private void LoadEntriesForPath(string path)
     {
+        // Navigating always exits search-results mode.
+        _searchCts?.Cancel();
+        IsSearching            = false;
+        IsShowingSearchResults = false;
+        _searchResults         = new();
+
         var (entries, accessDenied) = _fs.ListDirectory(path);
         _allEntries   = entries;
         SelectedEntry = null;
@@ -294,9 +442,11 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void ApplyFilter(bool accessDenied = false)
     {
+        var source = IsShowingSearchResults ? _searchResults : _allEntries;
+
         IEnumerable<FileSystemEntry> results = string.IsNullOrWhiteSpace(SearchText)
-            ? _allEntries
-            : _allEntries.Where(e =>
+            ? source
+            : source.Where(e =>
                 e.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
 
         // Always keep directories above files, then sort within each group.
@@ -318,12 +468,18 @@ public partial class MainWindowViewModel : ObservableObject
         };
 
         var list      = results.ToList();
-        var fileCount = list.Count(x => !x.IsDirectory);
-        var dirCount  = list.Count(x =>  x.IsDirectory);
 
-        Entries       = list;
-        FileCountText = accessDenied
-            ? $"{dirCount} folders,  {fileCount} files  ⚠ Some items could not be read (permission denied)"
-            : $"{dirCount} folders,  {fileCount} files";
+        Entries = list;
+
+        // In search-results mode the caller owns the status text ("Found X files matching…").
+        // Only update FileCountText for normal directory listings.
+        if (!IsShowingSearchResults)
+        {
+            var fileCount = list.Count(x => !x.IsDirectory);
+            var dirCount  = list.Count(x =>  x.IsDirectory);
+            FileCountText = accessDenied
+                ? $"{dirCount} folders,  {fileCount} files  ⚠ Some items could not be read (permission denied)"
+                : $"{dirCount} folders,  {fileCount} files";
+        }
     }
 }
