@@ -403,19 +403,19 @@ public partial class MainWindowViewModel : ObservableObject
         if (Directory.Exists(underHome))
             return underHome;
 
-        // 3. Known special-folder names (handles capitalisation variants).
+        // 3. Known special-folder names — fallback for systems where the folder
+        //    is not directly under the home directory (e.g. non-standard Windows setups).
+        //    Downloads has no SpecialFolder enum value; it is always found by case 2.
         var known = new Dictionary<string, Environment.SpecialFolder>(StringComparer.OrdinalIgnoreCase)
         {
-            ["downloads"]  = Environment.SpecialFolder.UserProfile, // no SpecialFolder enum for Downloads
-            ["documents"]  = Environment.SpecialFolder.MyDocuments,
-            ["desktop"]    = Environment.SpecialFolder.Desktop,
-            ["pictures"]   = Environment.SpecialFolder.MyPictures,
-            ["music"]      = Environment.SpecialFolder.MyMusic,
-            ["videos"]     = Environment.SpecialFolder.MyVideos,
+            ["documents"] = Environment.SpecialFolder.MyDocuments,
+            ["desktop"]   = Environment.SpecialFolder.Desktop,
+            ["pictures"]  = Environment.SpecialFolder.MyPictures,
+            ["music"]     = Environment.SpecialFolder.MyMusic,
+            ["videos"]    = Environment.SpecialFolder.MyVideos,
         };
 
-        // Downloads has no SpecialFolder entry — already covered by case 2 above.
-        if (known.TryGetValue(hint, out var folder) && folder != Environment.SpecialFolder.UserProfile)
+        if (known.TryGetValue(hint, out var folder))
         {
             var special = Environment.GetFolderPath(folder);
             if (Directory.Exists(special))

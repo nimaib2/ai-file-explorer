@@ -28,15 +28,33 @@ public class NlSearchService
           "date_to":       string     // ISO 8601 date
           "size_min":      string     // human size, e.g. "10MB", "500KB"
           "size_max":      string     // human size
-          "location_hint": string     // path fragment, e.g. "Downloads", "~/Documents"
+          "location_hint": string     // folder name, e.g. "Downloads", "Documents", "Desktop"
         }
 
-        Rules:
-        - Relative dates like "last week" or "this month" must be resolved to ISO 8601
-          based on today's date.
-        - "large files" means size_min of "100MB".
-        - "small files" means size_max of "1MB".
-        - Return only the JSON object. Do not wrap it in a code block.
+        Date rules (resolve all relative phrases using today's date):
+        - "last month"      → date_from: first day of previous month, date_to: last day of previous month
+        - "this month"      → date_from: first day of current month, date_to: today
+        - "this week"       → date_from: Monday of current week, date_to: today
+        - "last week"       → date_from: Monday of previous week, date_to: Sunday of previous week
+        - "this year"       → date_from: January 1 of current year, date_to: today
+        - "before 2024"     → date_to: "2023-12-31" (no date_from)
+        - "in 2024"         → date_from: "2024-01-01", date_to: "2024-12-31"
+        - "after June 2024" → date_from: "2024-07-01" (no date_to)
+        - "last year"       → date_from: January 1 of previous year, date_to: December 31 of previous year
+
+        Size rules:
+        - "large files"             → size_min: "50MB"
+        - "small files"             → size_max: "1MB"
+        - "bigger/larger than X"    → size_min: X
+        - "smaller/less than X"     → size_max: X
+
+        Location rules:
+        - "in Downloads" / "in the Downloads folder" → location_hint: "Downloads"
+        - "on the Desktop"                           → location_hint: "Desktop"
+        - "in Documents"                             → location_hint: "Documents"
+        - "in Pictures"                              → location_hint: "Pictures"
+
+        Return only the JSON object. Do not wrap it in a code block.
         """;
 
     private readonly AnthropicClient _client;
