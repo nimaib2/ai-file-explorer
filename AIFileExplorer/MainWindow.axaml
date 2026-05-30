@@ -246,12 +246,15 @@
                           Background="#313244"
                           HorizontalAlignment="Stretch"/>
 
-            <!-- ── Right pane: file list ───────────────────────────────────── -->
+            <!-- ── Right pane: directory view or search results ───────────── -->
             <!--
-                DockPanel inside the right column so the column header can be
-                docked to the top and the ListBox fills the rest.
+                A Grid with a single cell holds both views; IsVisible toggles
+                between them so only one is in the layout at a time.
             -->
-            <DockPanel Grid.Column="2">
+            <Grid Grid.Column="2">
+
+            <!-- Directory view — hidden while showing NL search results -->
+            <DockPanel IsVisible="{Binding !IsShowingSearchResults}">
 
                 <!--
                     Column headers — flat Buttons so clicking sorts the list.
@@ -400,6 +403,52 @@
                 </ListBox>
 
             </DockPanel>
+
+            <!-- Search results view — shown only during NL search results -->
+            <ListBox IsVisible="{Binding IsShowingSearchResults}"
+                     ItemsSource="{Binding SearchResultEntries}"
+                     SelectedItem="{Binding SelectedSearchResult, Mode=TwoWay}"
+                     Background="Transparent"
+                     DoubleTapped="OnSearchResultDoubleTapped">
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="Padding" Value="12,6"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="models:SearchResultEntry">
+                        <StackPanel Spacing="2">
+                            <!--
+                                Row 1: file name — bold so it stands out at a glance.
+                            -->
+                            <TextBlock Text="{Binding File.Name}"
+                                       FontFamily="Monospace"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       Foreground="#CDD6F4"/>
+                            <!--
+                                Row 2: full path — muted so it recedes behind the name.
+                                CharacterEllipsis truncates long paths gracefully.
+                            -->
+                            <TextBlock Text="{Binding File.FullPath}"
+                                       FontFamily="Monospace"
+                                       FontSize="11"
+                                       Foreground="#585B70"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <!--
+                                Row 3: relevance snippet — size · date · active filter reasons.
+                            -->
+                            <TextBlock Text="{Binding Snippet}"
+                                       FontSize="11"
+                                       Foreground="#CBA6F7"
+                                       Margin="0,1,0,0"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            </Grid>
         </Grid>
     </DockPanel>
 </Window>

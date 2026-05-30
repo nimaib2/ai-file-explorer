@@ -28,6 +28,9 @@ public partial class MainWindow : Window
     private void OnFileDoubleTapped(object? sender, TappedEventArgs e)
         => ViewModel.OpenCommand.Execute(null);
 
+    private void OnSearchResultDoubleTapped(object? sender, TappedEventArgs e)
+        => ViewModel.OpenSearchResultCommand.Execute(null);
+
     // ── IDialogService implementation ──────────────────────────────────────────
     //
     // Nested here because it is a View concern: it creates Avalonia Window

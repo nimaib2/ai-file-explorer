@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AIFileExplorer.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1aca4eaec79cecd3f8a5e0921a7e04f2bbc1215a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+81f24487450a17f360895f1fd2959d0a5f0bc202")]
 [assembly: System.Reflection.AssemblyProductAttribute("AIFileExplorer.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AIFileExplorer.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -91,6 +91,13 @@ public partial class MainWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(ClearNlSearchCommand))]
     private bool _isShowingSearchResults;
 
+    /// <summary>Search results with per-entry snippets. Shown in the dedicated search results pane.</summary>
+    [ObservableProperty]
+    private IReadOnlyList<SearchResultEntry>? _searchResultEntries;
+
+    [ObservableProperty]
+    private SearchResultEntry? _selectedSearchResult;
+
     // Sort state — not individual ObservableProperties because we update both
     // atomically and then call ApplyFilter once. Header labels are computed
     // properties that show the active sort column and direction arrow.
@@ -348,6 +355,9 @@ public partial class MainWindowViewModel : ObservableObject
             {
                 _searchResults         = results;
                 IsShowingSearchResults  = true;
+                SearchResultEntries    = results
+                    .Select(f => new SearchResultEntry { File = f, Snippet = BuildSnippet(f, effectiveFilter) })
+                    .ToList();
                 var n = results.Count;
                 FileCountText = $"Found {n} file{(n == 1 ? "" : "s")} matching \"{NlQueryText}\"";
                 ApplyFilter();
@@ -376,6 +386,22 @@ public partial class MainWindowViewModel : ObservableObject
         IsShowingSearchResults = false;
         IsSearching            = false;
         LoadEntriesForPath(CurrentPath);
+    }
+
+    // ── Search result navigation ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Navigates to the clicked search result's parent folder and selects the file.
+    /// Called from code-behind on double-tap.
+    /// </summary>
+    [RelayCommand]
+    private void OpenSearchResult()
+    {
+        if (SelectedSearchResult is not { } result) return;
+        var parent = Path.GetDirectoryName(result.File.FullPath);
+        if (parent is null) return;
+        SelectDirectory(parent);  // clears search-results mode, loads parent dir
+        SelectedEntry = _allEntries.FirstOrDefault(e => e.FullPath == result.File.FullPath);
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
@@ -433,6 +459,8 @@ public partial class MainWindowViewModel : ObservableObject
         IsSearching            = false;
         IsShowingSearchResults = false;
         _searchResults         = new();
+        SearchResultEntries    = null;
+        SelectedSearchResult   = null;
 
         var (entries, accessDenied) = _fs.ListDirectory(path);
         _allEntries   = entries;
@@ -481,5 +509,40 @@ public partial class MainWindowViewModel : ObservableObject
                 ? $"{dirCount} folders,  {fileCount} files  ⚠ Some items could not be read (permission denied)"
                 : $"{dirCount} folders,  {fileCount} files";
         }
+    }
+
+    /// <summary>
+    /// Builds a one-line "why this file matched" string from the file's actual
+    /// metadata and the filter conditions that were active for this search.
+    /// </summary>
+    private static string BuildSnippet(FileSystemEntry file, SearchFilter filter)
+    {
+        var parts = new List<string>();
+
+        // Always lead with the file's size and last-modified date.
+        parts.Add(file.DisplaySize);
+        parts.Add(file.LastModified.ToString("MM/dd/yy HH:mm"));
+
+        if (filter.FileTypes?.Count > 0)
+            parts.Add($"type: {file.Extension}");
+
+        if (filter.NameKeywords?.Count > 0)
+            parts.Add($"name: {string.Join(", ", filter.NameKeywords)}");
+
+        if (filter.DateFrom.HasValue && filter.DateTo.HasValue)
+            parts.Add($"range: {filter.DateFrom:MM/dd/yy}–{filter.DateTo:MM/dd/yy}");
+        else if (filter.DateFrom.HasValue)
+            parts.Add($"after {filter.DateFrom:MM/dd/yy}");
+        else if (filter.DateTo.HasValue)
+            parts.Add($"before {filter.DateTo:MM/dd/yy}");
+
+        if (filter.SizeMinBytes.HasValue && filter.SizeMaxBytes.HasValue)
+            parts.Add($"size filter: {filter.SizeMinBytes / (1 << 20)} MB – {filter.SizeMaxBytes / (1 << 20)} MB");
+        else if (filter.SizeMinBytes.HasValue)
+            parts.Add($"size > {filter.SizeMinBytes / (1 << 20)} MB");
+        else if (filter.SizeMaxBytes.HasValue)
+            parts.Add($"size < {filter.SizeMaxBytes / (1 << 20)} MB");
+
+        return string.Join("  ·  ", parts);
     }
 }
