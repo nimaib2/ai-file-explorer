@@ -415,18 +415,21 @@ public partial class MainWindowViewModel : ObservableObject
 
     /// <summary>
     /// Tries to turn a location hint from Claude into a real directory path.
-    /// Priority: absolute path → ~/hint → known special-folder name → CurrentPath.
+    /// Priority: absolute path → ~/hint → known special-folder name → home directory.
+    /// Falls back to CurrentPath only when the home directory cannot be determined.
+    /// When there is no hint, searches from home so queries like "find my resume"
+    /// cover the whole user profile, not just the folder currently open in the browser.
     /// </summary>
     private string ResolveRootPath(string? hint)
     {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
         if (string.IsNullOrWhiteSpace(hint))
-            return CurrentPath;
+            return Directory.Exists(home) ? home : CurrentPath;
 
         // 1. Already an absolute path that exists.
         if (Path.IsPathRooted(hint) && Directory.Exists(hint))
             return hint;
-
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
         // 2. Relative to home directory (e.g. "Downloads" → ~/Downloads).
         var underHome = Path.Combine(home, hint);
@@ -439,10 +442,10 @@ public partial class MainWindowViewModel : ObservableObject
         var known = new Dictionary<string, Environment.SpecialFolder>(StringComparer.OrdinalIgnoreCase)
         {
             ["documents"] = Environment.SpecialFolder.MyDocuments,
-            ["desktop"]   = Environment.SpecialFolder.Desktop,
-            ["pictures"]  = Environment.SpecialFolder.MyPictures,
-            ["music"]     = Environment.SpecialFolder.MyMusic,
-            ["videos"]    = Environment.SpecialFolder.MyVideos,
+            ["desktop"] = Environment.SpecialFolder.Desktop,
+            ["pictures"] = Environment.SpecialFolder.MyPictures,
+            ["music"] = Environment.SpecialFolder.MyMusic,
+            ["videos"] = Environment.SpecialFolder.MyVideos,
         };
 
         if (known.TryGetValue(hint, out var folder))
@@ -452,8 +455,9 @@ public partial class MainWindowViewModel : ObservableObject
                 return special;
         }
 
-        // 4. Fall back — search from wherever the user is browsing.
-        return CurrentPath;
+        // 4. Unrecognised hint — still better to search the whole home tree than
+        //    only the currently-open folder.
+        return Directory.Exists(home) ? home : CurrentPath;
     }
 
     private void LoadEntriesForPath(string path)

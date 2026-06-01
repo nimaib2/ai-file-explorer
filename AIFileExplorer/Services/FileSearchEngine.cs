@@ -12,9 +12,38 @@ namespace AIFileExplorer.Services;
 /// Walks a directory tree and returns all files that satisfy a <see cref="FileQuery"/>.
 /// Runs the walk on a thread-pool thread so the UI stays responsive.
 /// Directories that cannot be read (access denied, broken symlinks) are silently skipped.
+/// Well-known build-artifact and dependency directories are pruned to keep searches fast.
 /// </summary>
 public class FileSearchEngine
 {
+    /// <summary>
+    /// Directory names that are never searched. These are build artifacts, package caches,
+    /// and VCS internals that a user would never store personal files in and that can
+    /// contain millions of entries deep in the tree.
+    /// Comparison is case-insensitive so this works on both macOS and Windows.
+    /// </summary>
+    private static readonly HashSet<string> SkippedDirNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // JS / Node
+        "node_modules",
+        ".npm",
+        ".yarn",
+        // .NET
+        "bin", "obj",
+        ".nuget",
+        // Python
+        "__pycache__",
+        ".venv", "venv", "env", ".env",
+        // Java / Gradle / Maven
+        ".gradle", ".m2",
+        // Version control internals
+        ".git", ".svn", ".hg",
+        // Generic build / dist output
+        "dist", "build", ".next", ".output", ".turbo",
+        // macOS
+        ".Trash",
+        "Library",       // ~/Library is huge and contains no user documents
+    };
     /// <summary>
     /// Searches the tree rooted at <see cref="FileQuery.RootPath"/> and returns
     /// every file that passes all active filters.
@@ -72,7 +101,10 @@ public class FileSearchEngine
         }
 
         foreach (var sub in subdirs)
-            Walk(sub, filter, results, ct);
+        {
+            if (!SkippedDirNames.Contains(Path.GetFileName(sub)))
+                Walk(sub, filter, results, ct);
+        }
     }
 
     // ── Filter predicate ──────────────────────────────────────────────────────
