@@ -326,9 +326,12 @@ public partial class MainWindowViewModel : ObservableObject
 
         try
         {
-            var filter  = await _nlSearch.ParseQueryAsync(NlQueryText);
-            Debug.WriteLine($"[NlSearch] Filter — types:[{string.Join(",", filter.FileTypes ?? [])}] keywords:[{string.Join(",", filter.NameKeywords ?? [])}] dateFrom:{filter.DateFrom} dateTo:{filter.DateTo} sizeMin:{filter.SizeMinBytes} sizeMax:{filter.SizeMaxBytes} location:{filter.LocationHint}");
-            await Dispatcher.UIThread.InvokeAsync(() => FileCountText = "Searching files…");
+            var (filter, wasFallback) = await _nlSearch.ParseQueryAsync(NlQueryText, ct);
+            Debug.WriteLine($"[NlSearch] Filter — types:[{string.Join(",", filter.FileTypes ?? [])}] keywords:[{string.Join(",", filter.NameKeywords ?? [])}] dateFrom:{filter.DateFrom} dateTo:{filter.DateTo} sizeMin:{filter.SizeMinBytes} sizeMax:{filter.SizeMaxBytes} location:{filter.LocationHint} fallback:{wasFallback}");
+            var statusWhileSearching = wasFallback
+                ? "Claude timed out — searching by filename…"
+                : "Searching files…";
+            await Dispatcher.UIThread.InvokeAsync(() => FileCountText = statusWhileSearching);
 
             var rootPath = ResolveRootPath(filter.LocationHint);
             // LocationHint has been promoted to the root — clear it from the
@@ -359,7 +362,8 @@ public partial class MainWindowViewModel : ObservableObject
                     .Select(f => new SearchResultEntry { File = f, Snippet = BuildSnippet(f, effectiveFilter) })
                     .ToList();
                 var n = results.Count;
-                FileCountText = $"Found {n} file{(n == 1 ? "" : "s")} matching \"{NlQueryText}\"";
+                var suffix = wasFallback ? " (filename search — Claude unavailable)" : string.Empty;
+                FileCountText = $"Found {n} file{(n == 1 ? "" : "s")} matching \"{NlQueryText}\"{suffix}";
                 ApplyFilter();
             });
         }

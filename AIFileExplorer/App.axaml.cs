@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using AIFileExplorer.Services;
 
 namespace AIFileExplorer;
 
@@ -20,7 +19,5 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
-
-        _ = new ClaudeService().SayHelloAsync();
     }
 }
