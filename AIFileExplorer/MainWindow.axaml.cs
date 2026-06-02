@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
 using AIFileExplorer.Services;
 using AIFileExplorer.ViewModels;
 using AIFileExplorer.Views;
@@ -14,16 +15,13 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        // IDialogService is implemented here (View layer) because showing a
-        // dialog requires a parent Window reference. The ViewModel gets an
-        // interface — it never knows that Avalonia Windows are involved.
         DataContext = new MainWindowViewModel(new DialogService(this));
+
+        // Wire up chat panel behaviour after DataContext is set.
+        WireChatPanel();
     }
 
     // ── File list double-tap ───────────────────────────────────────────────────
-    // Converts the Avalonia TappedEventArgs UI event into a ViewModel command.
-    // DoubleTapped has no native command binding in Avalonia without a behavior
-    // package, so this one-line bridge stays in code-behind.
 
     private void OnFileDoubleTapped(object? sender, TappedEventArgs e)
         => ViewModel.OpenCommand.Execute(null);
@@ -31,11 +29,45 @@ public partial class MainWindow : Window
     private void OnSearchResultDoubleTapped(object? sender, TappedEventArgs e)
         => ViewModel.OpenSearchResultCommand.Execute(null);
 
+    // ── Chat panel wiring ─────────────────────────────────────────────────────
+
+    private void WireChatPanel()
+    {
+        var grid         = this.FindControl<Grid>("MainContentGrid")!;
+        var scrollViewer = this.FindControl<ScrollViewer>("ChatScrollViewer")!;
+        var chat         = ViewModel.Chat;
+
+        // Collapse the splitter (col 3) and panel (col 4) to zero width on startup
+        // since IsVisible starts false, then keep them in sync with IsVisible.
+        ApplyChatColumnWidths(grid, chat.IsVisible);
+        chat.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ChatViewModel.IsVisible))
+                ApplyChatColumnWidths(grid, chat.IsVisible);
+        };
+
+        // Auto-scroll to the newest message whenever the list changes.
+        // Post at default priority so the new item has been measured/laid out
+        // before we try to scroll to it.
+        chat.Messages.CollectionChanged += (_, _) =>
+            Dispatcher.UIThread.Post(() => scrollViewer.ScrollToEnd());
+    }
+
+    /// <summary>
+    /// Sets the widths of the chat splitter (column 3) and chat panel (column 4)
+    /// to their real values when the panel is open, or to 0 when it is closed.
+    /// Mutating ColumnDefinition.Width directly is the reliable way to
+    /// programmatically show/hide Grid columns in Avalonia.
+    /// </summary>
+    private static void ApplyChatColumnWidths(Grid grid, bool isVisible)
+    {
+        grid.ColumnDefinitions[3].Width = isVisible
+            ? new GridLength(4)   : GridLength.Auto;   // splitter
+        grid.ColumnDefinitions[4].Width = isVisible
+            ? new GridLength(280) : GridLength.Auto;   // panel
+    }
+
     // ── IDialogService implementation ──────────────────────────────────────────
-    //
-    // Nested here because it is a View concern: it creates Avalonia Window
-    // objects and calls ShowDialog. None of that belongs in the ViewModel.
-    // The ViewModel only sees the IDialogService interface and the result types.
 
     private sealed class DialogService : IDialogService
     {

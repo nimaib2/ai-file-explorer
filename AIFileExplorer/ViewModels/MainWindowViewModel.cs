@@ -34,6 +34,7 @@ public partial class MainWindowViewModel : ObservableObject
     private bool             _clipboardIsCut;
 
     public FileSystemViewModel FileSystem { get; } = new();
+    public ChatViewModel        Chat       { get; } = new();
 
     public MainWindowViewModel(IDialogService dialogs)
     {

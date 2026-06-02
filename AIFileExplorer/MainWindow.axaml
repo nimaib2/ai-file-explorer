@@ -4,7 +4,7 @@
         xmlns:vm="using:AIFileExplorer.ViewModels"
         x:Class="AIFileExplorer.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="AI File Explorer — Day 17: NL Search"
+        Title="AI File Explorer"
         Width="1100" Height="680"
         MinWidth="700" MinHeight="400">
 
@@ -41,7 +41,7 @@
         <Border DockPanel.Dock="Top"
                 Background="#1E1E2E"
                 Padding="10,8">
-            <Grid ColumnDefinitions="Auto,Auto,*,180,Auto">
+            <Grid ColumnDefinitions="Auto,Auto,*,180,Auto,Auto">
 
                 <!-- Column 0: Up button — navigates to parent directory -->
                 <Button Grid.Column="0"
@@ -80,7 +80,15 @@
                 <Button Grid.Column="4"
                         Content="Go"
                         Command="{Binding NavigateCommand}"
-                        Padding="16,4"/>
+                        Padding="16,4"
+                        Margin="0,0,6,0"/>
+
+                <!-- Column 5: Chat panel toggle -->
+                <Button Grid.Column="5"
+                        Content="💬"
+                        Command="{Binding Chat.ToggleVisibleCommand}"
+                        Padding="10,4"
+                        ToolTip.Tip="Toggle chat panel"/>
             </Grid>
         </Border>
 
@@ -174,17 +182,18 @@
             </Grid>
         </Border>
 
-        <!-- ══ Main content: two-pane layout ══════════════════════════════════
-             A Grid with three columns:
-               0  — left pane  (starts at 220 px, user can drag)
-               1  — splitter   (4 px drag handle)
-               2  — right pane (takes all remaining space)
+        <!-- ══ Main content: three-pane layout ═══════════════════════════════
+             Five columns:
+               0  — directory tree  (220 px, draggable)
+               1  — tree/file splitter (4 px)
+               2  — file pane  (* = takes remaining space)
+               3  — file/chat splitter (4 px, hidden when chat is closed)
+               4  — chat panel (280 px, hidden when chat is closed)
 
-             GridSplitter sits in column 1 and adjusts columns 0 and 2 as the
-             user drags. ResizeDirection="Columns" is required; without it the
-             splitter defaults to resizing rows.
+             Columns 3 and 4 start at width 0; MainWindow.axaml.cs sets them
+             to their real widths whenever Chat.IsVisible changes.
         ══════════════════════════════════════════════════════════════════════ -->
-        <Grid ColumnDefinitions="220,4,*">
+        <Grid x:Name="MainContentGrid" ColumnDefinitions="220,4,*,0,0">
 
             <!-- ── Left pane: directory TreeView ──────────────────────────── -->
             <Border Grid.Column="0" Background="#181825">
@@ -449,6 +458,148 @@
             </ListBox>
 
             </Grid>
+
+            <!-- ── Chat / file splitter (column 3) ───────────────────────── -->
+            <GridSplitter Grid.Column="3"
+                          ResizeDirection="Columns"
+                          Background="#313244"
+                          HorizontalAlignment="Stretch"/>
+
+            <!-- ── Chat panel (column 4) ──────────────────────────────────── -->
+            <!--
+                Three rows:
+                  0  — header bar with title + close button
+                  1  — messages scroll area (* = fills remaining height)
+                  2  — "Claude is thinking…" indicator (auto height, only when sending)
+                  3  — input box + send button
+            -->
+            <Grid Grid.Column="4"
+                  RowDefinitions="Auto,*,Auto,Auto"
+                  Background="#181825">
+
+                <!-- Row 0: header -->
+                <Border Grid.Row="0"
+                        Background="#1E1E2E"
+                        Padding="12,8"
+                        BorderBrush="#313244"
+                        BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Chat"
+                                   Foreground="#CBA6F7"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                Content="×"
+                                Command="{Binding Chat.ToggleVisibleCommand}"
+                                Padding="8,2"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#585B70"
+                                ToolTip.Tip="Close chat"/>
+                    </Grid>
+                </Border>
+
+                <!-- Row 1: messages -->
+                <!--
+                    ScrollViewer is named so code-behind can call ScrollToEnd()
+                    whenever a new message is appended to Chat.Messages.
+                -->
+                <ScrollViewer Grid.Row="1"
+                              x:Name="ChatScrollViewer"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto"
+                              Padding="0,4">
+                    <ItemsControl ItemsSource="{Binding Chat.Messages}">
+                        <ItemsControl.ItemTemplate>
+                            <!--
+                                Each item is a Panel that contains two Borders:
+                                one shown for user messages (right side, accent colour),
+                                one shown for assistant messages (left side, surface colour).
+                                IsVisible binds to ChatMessage.IsUser so only one is
+                                in layout at a time. MaxWidth keeps bubbles from spanning
+                                the whole panel on wide chat columns.
+                            -->
+                            <DataTemplate DataType="models:ChatMessage">
+                                <Panel Margin="0,2">
+
+                                    <!-- User bubble — right-aligned, mauve -->
+                                    <Border IsVisible="{Binding IsUser}"
+                                            HorizontalAlignment="Right"
+                                            Background="#CBA6F7"
+                                            CornerRadius="12,12,2,12"
+                                            Padding="10,7"
+                                            MaxWidth="220"
+                                            Margin="40,0,8,0">
+                                        <TextBlock Text="{Binding Text}"
+                                                   Foreground="#1E1E2E"
+                                                   FontSize="12"
+                                                   TextWrapping="Wrap"/>
+                                    </Border>
+
+                                    <!-- Assistant bubble — left-aligned, surface -->
+                                    <Border IsVisible="{Binding !IsUser}"
+                                            HorizontalAlignment="Left"
+                                            Background="#313244"
+                                            CornerRadius="12,12,12,2"
+                                            Padding="10,7"
+                                            MaxWidth="220"
+                                            Margin="8,0,40,0">
+                                        <TextBlock Text="{Binding Text}"
+                                                   Foreground="#CDD6F4"
+                                                   FontSize="12"
+                                                   TextWrapping="Wrap"/>
+                                    </Border>
+
+                                </Panel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Row 2: "thinking" indicator — zero height when not sending -->
+                <TextBlock Grid.Row="2"
+                           Text="Claude is thinking…"
+                           IsVisible="{Binding Chat.IsSending}"
+                           Foreground="#585B70"
+                           FontSize="11"
+                           FontStyle="Italic"
+                           Margin="12,4,8,0"/>
+
+                <!-- Row 3: input area -->
+                <Border Grid.Row="3"
+                        Background="#1E1E2E"
+                        Padding="8"
+                        BorderBrush="#313244"
+                        BorderThickness="0,1,0,0">
+                    <Grid ColumnDefinitions="*,Auto">
+
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding Chat.InputText}"
+                                 PlaceholderText="Ask Claude…"
+                                 VerticalContentAlignment="Center"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="False"
+                                 MaxHeight="80"
+                                 Margin="0,0,6,0"
+                                 IsEnabled="{Binding !Chat.IsSending}">
+                            <TextBox.KeyBindings>
+                                <KeyBinding Gesture="Return"
+                                            Command="{Binding Chat.SendCommand}"/>
+                            </TextBox.KeyBindings>
+                        </TextBox>
+
+                        <Button Grid.Column="1"
+                                Content="Send"
+                                Command="{Binding Chat.SendCommand}"
+                                Padding="12,6"
+                                IsEnabled="{Binding !Chat.IsSending}"
+                                VerticalAlignment="Bottom"/>
+                    </Grid>
+                </Border>
+
+            </Grid>
+
         </Grid>
     </DockPanel>
 </Window>
