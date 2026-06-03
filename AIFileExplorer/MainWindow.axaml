@@ -557,10 +557,10 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <!-- Row 2: "thinking" indicator — zero height when not sending -->
+                <!-- Row 2: "thinking" indicator — visible only until the first token arrives -->
                 <TextBlock Grid.Row="2"
                            Text="Claude is thinking…"
-                           IsVisible="{Binding Chat.IsSending}"
+                           IsVisible="{Binding Chat.IsThinking}"
                            Foreground="#585B70"
                            FontSize="11"
                            FontStyle="Italic"
