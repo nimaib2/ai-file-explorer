@@ -474,7 +474,7 @@
                   3  — input box + send button
             -->
             <Grid Grid.Column="4"
-                  RowDefinitions="Auto,*,Auto,Auto"
+                  RowDefinitions="Auto,Auto,*,Auto,Auto"
                   Background="#181825">
 
                 <!-- Row 0: header -->
@@ -500,12 +500,25 @@
                     </Grid>
                 </Border>
 
-                <!-- Row 1: messages -->
+                <!-- Row 1: context bar — shows what Claude currently sees -->
+                <Border Grid.Row="1"
+                        Background="#13131f"
+                        Padding="12,5"
+                        BorderBrush="#313244"
+                        BorderThickness="0,0,0,1">
+                    <TextBlock Text="{Binding Chat.ContextSummary}"
+                               Foreground="#585B70"
+                               FontSize="11"
+                               FontStyle="Italic"
+                               TextTrimming="CharacterEllipsis"/>
+                </Border>
+
+                <!-- Row 2: messages -->
                 <!--
                     ScrollViewer is named so code-behind can call ScrollToEnd()
                     whenever a new message is appended to Chat.Messages.
                 -->
-                <ScrollViewer Grid.Row="1"
+                <ScrollViewer Grid.Row="2"
                               x:Name="ChatScrollViewer"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto"
@@ -557,8 +570,8 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <!-- Row 2: "thinking" indicator — visible only until the first token arrives -->
-                <TextBlock Grid.Row="2"
+                <!-- Row 3: "thinking" indicator — visible only until the first token arrives -->
+                <TextBlock Grid.Row="3"
                            Text="Claude is thinking…"
                            IsVisible="{Binding Chat.IsThinking}"
                            Foreground="#585B70"
@@ -566,8 +579,8 @@
                            FontStyle="Italic"
                            Margin="12,4,8,0"/>
 
-                <!-- Row 3: input area -->
-                <Border Grid.Row="3"
+                <!-- Row 4: input area -->
+                <Border Grid.Row="4"
                         Background="#1E1E2E"
                         Padding="8"
                         BorderBrush="#313244"

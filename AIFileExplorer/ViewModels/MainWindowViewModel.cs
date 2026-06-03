@@ -34,13 +34,14 @@ public partial class MainWindowViewModel : ObservableObject
     private bool             _clipboardIsCut;
 
     public FileSystemViewModel FileSystem { get; } = new();
-    public ChatViewModel        Chat       { get; } = new();
+    public ChatViewModel        Chat       { get; }
 
     public MainWindowViewModel(IDialogService dialogs)
     {
         _dialogs  = dialogs;
         _fs       = new FileSystemService();
         _fileOps  = new FileOperationService();
+        Chat      = new ChatViewModel(GetFileContext);
     }
 
     // ── Observable properties ──────────────────────────────────────────────────
@@ -131,11 +132,19 @@ public partial class MainWindowViewModel : ObservableObject
             : value.IsDirectory
                 ? $"[DIR]  {value.Name}"
                 : $"{value.Name}  ·  {value.DisplaySize}  ·  {value.LastModified:MM/dd/yy HH:mm}";
+
+        UpdateChatContextSummary();
     }
 
     partial void OnCurrentPathChanged(string value)
     {
         NavigateUpCommand.NotifyCanExecuteChanged();
+        UpdateChatContextSummary();
+    }
+
+    partial void OnIsShowingSearchResultsChanged(bool value)
+    {
+        UpdateChatContextSummary();
     }
 
     partial void OnSelectedTreeNodeChanged(object? value)
@@ -415,6 +424,37 @@ public partial class MainWindowViewModel : ObservableObject
     private void Refresh() => LoadEntriesForPath(CurrentPath);
 
     /// <summary>
+    /// Builds a fresh snapshot of the explorer state for the chat system prompt.
+    /// Called by ChatViewModel's Func&lt;FileContext&gt; at the moment the user sends a message.
+    /// </summary>
+    private FileContext GetFileContext() => new()
+    {
+        CurrentPath            = CurrentPath,
+        SelectedEntry          = SelectedEntry,
+        DirectoryEntries       = _allEntries,
+        IsShowingSearchResults = IsShowingSearchResults,
+        SearchQuery            = IsShowingSearchResults ? NlQueryText : null,
+        SearchResults          = _searchResults,
+    };
+
+    /// <summary>
+    /// Updates the one-line context label shown in the chat panel header.
+    /// Called whenever path, selection, or search-results state changes so the
+    /// label always reflects what Claude will see on the next message.
+    /// </summary>
+    private void UpdateChatContextSummary()
+    {
+        var dirName = Path.GetFileName(CurrentPath.TrimEnd(Path.DirectorySeparatorChar))
+                      is { Length: > 0 } n ? n : CurrentPath;
+
+        Chat.ContextSummary = IsShowingSearchResults
+            ? $"Search: \"{NlQueryText}\"  ({_searchResults.Count} results)"
+            : SelectedEntry is { } sel
+                ? $"{dirName}  ·  {sel.Name} selected"
+                : dirName;
+    }
+
+    /// <summary>
     /// Tries to turn a location hint from Claude into a real directory path.
     /// Priority: absolute path → ~/hint → known special-folder name → home directory.
     /// Falls back to CurrentPath only when the home directory cannot be determined.
@@ -475,6 +515,7 @@ public partial class MainWindowViewModel : ObservableObject
         _allEntries   = entries;
         SelectedEntry = null;
         ApplyFilter(accessDenied);
+        UpdateChatContextSummary();
     }
 
     private void ApplyFilter(bool accessDenied = false)

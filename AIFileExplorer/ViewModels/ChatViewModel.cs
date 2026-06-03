@@ -13,14 +13,21 @@ namespace AIFileExplorer.ViewModels;
 
 public partial class ChatViewModel : ObservableObject
 {
-    private readonly ChatService _chatService = new();
+    private readonly ChatService    _chatService = new();
+    private readonly Func<FileContext> _getContext;
     private CancellationTokenSource? _sendCts;
 
-    /// <summary>
-    /// Full conversation history in chronological order.
-    /// Both user and assistant messages live here; the streaming path mutates
-    /// the last assistant message in-place via ChatMessage.Text (observable).
-    /// </summary>
+    /// <param name="getContext">
+    /// Called on each send to capture the current explorer state.
+    /// Using a delegate instead of a direct reference keeps the ViewModel
+    /// decoupled and ensures we always get a fresh snapshot, not a stale one.
+    /// </param>
+    public ChatViewModel(Func<FileContext> getContext)
+    {
+        _getContext = getContext;
+    }
+
+    /// <summary>Full conversation history in chronological order.</summary>
     public ObservableCollection<ChatMessage> Messages { get; } = [];
 
     [ObservableProperty]
@@ -33,20 +40,27 @@ public partial class ChatViewModel : ObservableObject
 
     /// <summary>
     /// True from the moment Send is invoked until the entire stream finishes.
-    /// Disables the send button throughout so the user cannot start a second
-    /// request while one is in flight.
+    /// Keeps the send button disabled so the user cannot start a second request
+    /// while one is already in flight.
     /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
     private bool _isSending;
 
     /// <summary>
-    /// True only while waiting for the first streaming token.
-    /// Drives the "Claude is thinking…" indicator — it disappears the moment
-    /// text starts arriving, replaced by the growing response bubble.
+    /// True only while waiting for the very first streaming token.
+    /// Drives the "Claude is thinking…" indicator; cleared the moment text arrives.
     /// </summary>
     [ObservableProperty]
     private bool _isThinking;
+
+    /// <summary>
+    /// One-line summary of what Claude currently knows about the explorer state.
+    /// Set by MainWindowViewModel whenever the path, selection, or search results change.
+    /// Displayed in the chat panel context bar so the user can see what context is active.
+    /// </summary>
+    [ObservableProperty]
+    private string _contextSummary = string.Empty;
 
     // ── Commands ──────────────────────────────────────────────────────────────
 
@@ -66,35 +80,31 @@ public partial class ChatViewModel : ObservableObject
         _sendCts = new CancellationTokenSource();
         var ct = _sendCts.Token;
 
+        // Capture context at send-time, not at construction time.
+        var context = _getContext();
+
         IsSending  = true;
         IsThinking = true;
 
-        // Add an empty assistant bubble that streaming will fill in word-by-word.
         var assistantMsg = new ChatMessage { Role = ChatRole.Assistant, Text = string.Empty };
         Messages.Add(assistantMsg);
 
         try
         {
-            // History = everything except the empty placeholder we just added.
-            // The stream adds text to the placeholder directly via the mutable Text property.
+            // Exclude the empty placeholder from the history sent to Claude.
             var history = Messages.Take(Messages.Count - 1).ToList();
 
-            await foreach (var chunk in _chatService.StreamAsync(history, ct))
+            await foreach (var chunk in _chatService.StreamAsync(history, context, ct))
             {
                 if (IsThinking)
-                {
-                    // First token arrived — hide the "thinking" indicator.
                     await Dispatcher.UIThread.InvokeAsync(() => IsThinking = false);
-                }
 
-                // Append the token to the live bubble on the UI thread so
-                // ChatMessage.PropertyChanged fires on the correct thread.
                 await Dispatcher.UIThread.InvokeAsync(() => assistantMsg.Text += chunk);
             }
         }
         catch (OperationCanceledException)
         {
-            // A new send superseded this one — leave the partial bubble as-is.
+            // Superseded by a newer send — leave the partial bubble as-is.
         }
         catch (Exception ex)
         {
