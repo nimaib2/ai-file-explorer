@@ -66,7 +66,12 @@ public partial class MainWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
     [NotifyCanExecuteChangedFor(nameof(RenameCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SummarizeCommand))]
     private FileSystemEntry? _selectedEntry;
+
+    /// <summary>True when the selected entry is a readable text/code file.</summary>
+    [ObservableProperty]
+    private bool _isTextFileSelected;
 
     // Bound to TreeView.SelectedItem so tree-click navigation stays in the VM.
     // Typed as object? because TreeView.SelectedItem is object? — the callback
@@ -133,6 +138,7 @@ public partial class MainWindowViewModel : ObservableObject
                 ? $"[DIR]  {value.Name}"
                 : $"{value.Name}  ·  {value.DisplaySize}  ·  {value.LastModified:MM/dd/yy HH:mm}";
 
+        IsTextFileSelected = value is not null && IsTextFile(value);
         UpdateChatContextSummary();
     }
 
@@ -317,6 +323,58 @@ public partial class MainWindowViewModel : ObservableObject
             catch (Exception ex) { FileCountText = $"Error: {ex.Message}"; }
         }
     }
+
+    // ── Summarize ──────────────────────────────────────────────────────────────
+
+    private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".txt", ".md", ".markdown", ".rst", ".csv", ".tsv",
+        ".json", ".xml", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf",
+        ".cs", ".fs", ".vb", ".py", ".js", ".ts", ".jsx", ".tsx",
+        ".java", ".kt", ".swift", ".go", ".rs", ".cpp", ".c", ".h", ".hpp",
+        ".sh", ".bash", ".zsh", ".ps1", ".bat", ".rb", ".php", ".lua", ".r", ".sql",
+        ".html", ".htm", ".css", ".scss", ".log", ".svg", ".proto", ".graphql",
+    };
+
+    private static bool IsTextFile(FileSystemEntry entry) =>
+        !entry.IsDirectory && TextExtensions.Contains(entry.Extension);
+
+    [RelayCommand(CanExecute = nameof(CanSummarize))]
+    private async Task Summarize()
+    {
+        if (SelectedEntry is not { } entry || !IsTextFile(entry)) return;
+
+        const int maxBytes = 100 * 1024;
+        string content;
+        bool wasTruncated;
+
+        try
+        {
+            var info = new FileInfo(entry.FullPath);
+            if (info.Length > maxBytes)
+            {
+                using var reader = new StreamReader(entry.FullPath);
+                var buffer = new char[maxBytes];
+                int read = await reader.ReadBlockAsync(buffer, 0, maxBytes);
+                content      = new string(buffer, 0, read);
+                wasTruncated = true;
+            }
+            else
+            {
+                content      = await File.ReadAllTextAsync(entry.FullPath);
+                wasTruncated = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            FileCountText = $"Cannot read file: {ex.Message}";
+            return;
+        }
+
+        await Chat.SummarizeAsync(entry.Name, content, wasTruncated);
+    }
+
+    private bool CanSummarize() => IsTextFileSelected;
 
     // ── NL search ──────────────────────────────────────────────────────────────
 

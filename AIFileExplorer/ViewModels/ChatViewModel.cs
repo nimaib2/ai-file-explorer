@@ -122,4 +122,64 @@ public partial class ChatViewModel : ObservableObject
     }
 
     private bool CanSend() => !IsSending && !string.IsNullOrWhiteSpace(InputText);
+
+    // ── Summarize ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Opens the chat panel and streams a Claude summary for the provided file content.
+    /// The UI bubble shows "Summarize: {displayName}" while Claude receives the full text.
+    /// </summary>
+    public async Task SummarizeAsync(string displayName, string content, bool wasTruncated)
+    {
+        IsVisible = true;   // open the panel if it's closed
+
+        _sendCts?.Cancel();
+        _sendCts = new CancellationTokenSource();
+        var ct = _sendCts.Token;
+
+        var context = _getContext();
+
+        var apiPrompt = wasTruncated
+            ? $"Please summarize the following file ({displayName}). Note: only the first 100 KB is shown.\n\n{content}"
+            : $"Please summarize the following file ({displayName}):\n\n{content}";
+
+        var userMsg = new ChatMessage
+        {
+            Role            = ChatRole.User,
+            Text            = $"Summarize: {displayName}",
+            OverrideApiText = apiPrompt,
+        };
+        Messages.Add(userMsg);
+
+        IsSending  = true;
+        IsThinking = true;
+
+        var assistantMsg = new ChatMessage { Role = ChatRole.Assistant, Text = string.Empty };
+        Messages.Add(assistantMsg);
+
+        try
+        {
+            var history = Messages.Take(Messages.Count - 1).ToList();
+            await foreach (var chunk in _chatService.StreamAsync(history, context, ct))
+            {
+                if (IsThinking)
+                    await Dispatcher.UIThread.InvokeAsync(() => IsThinking = false);
+                await Dispatcher.UIThread.InvokeAsync(() => assistantMsg.Text += chunk);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            await Dispatcher.UIThread.InvokeAsync(
+                () => assistantMsg.Text = $"Error: {ex.Message}");
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                IsThinking = false;
+                IsSending  = false;
+            });
+        }
+    }
 }

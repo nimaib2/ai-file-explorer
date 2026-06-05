@@ -41,7 +41,7 @@
         <Border DockPanel.Dock="Top"
                 Background="#1E1E2E"
                 Padding="10,8">
-            <Grid ColumnDefinitions="Auto,Auto,*,180,Auto,Auto">
+            <Grid ColumnDefinitions="Auto,Auto,*,180,Auto,Auto,Auto">
 
                 <!-- Column 0: Up button — navigates to parent directory -->
                 <Button Grid.Column="0"
@@ -89,6 +89,15 @@
                         Command="{Binding Chat.ToggleVisibleCommand}"
                         Padding="10,4"
                         ToolTip.Tip="Toggle chat panel"/>
+
+                <!-- Column 6: Summarize — visible only when a text/code file is selected -->
+                <Button Grid.Column="6"
+                        Content="Summarize"
+                        Command="{Binding SummarizeCommand}"
+                        IsVisible="{Binding IsTextFileSelected}"
+                        Padding="10,4"
+                        Margin="6,0,0,0"
+                        ToolTip.Tip="Summarize selected file with Claude"/>
             </Grid>
         </Border>
 

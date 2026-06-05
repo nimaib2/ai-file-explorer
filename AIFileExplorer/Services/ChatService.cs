@@ -40,7 +40,7 @@ public class ChatService
             .Select(m => new MessageParam
             {
                 Role    = m.Role == ChatRole.User ? Role.User : Role.Assistant,
-                Content = m.Text,
+                Content = m.OverrideApiText ?? m.Text,
             })
             .ToList();
 

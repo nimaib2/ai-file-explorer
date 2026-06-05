@@ -29,6 +29,13 @@ public class ChatMessage : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// When set, this text is sent to the Claude API instead of <see cref="Text"/>.
+    /// Lets the UI show a short label ("Summarize: file.txt") while Claude receives
+    /// the full file content.
+    /// </summary>
+    public string? OverrideApiText { get; init; }
+
     /// <summary>Convenience flag used by XAML to pick bubble side and colour.</summary>
     public bool IsUser => Role == ChatRole.User;
 
