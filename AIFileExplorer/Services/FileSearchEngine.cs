@@ -70,13 +70,16 @@ public class FileSearchEngine
     {
         ct.ThrowIfCancellationRequested();
 
-        IEnumerable<string> files;
-        IEnumerable<string> subdirs;
+        string[] files;
+        string[] subdirs;
 
         try
         {
-            files   = Directory.EnumerateFiles(dir);
-            subdirs = Directory.EnumerateDirectories(dir);
+            // GetFiles/GetDirectories are eager — they enumerate upfront so the
+            // catch here covers all access errors for this directory, including
+            // cases where a lazy enumerator would throw mid-iteration (e.g. /etc).
+            files   = Directory.GetFiles(dir);
+            subdirs = Directory.GetDirectories(dir);
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException
                                       or DirectoryNotFoundException

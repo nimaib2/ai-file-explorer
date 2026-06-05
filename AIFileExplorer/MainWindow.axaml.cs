@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
+using AIFileExplorer.Models;
 using AIFileExplorer.Services;
 using AIFileExplorer.ViewModels;
 using AIFileExplorer.Views;
@@ -46,11 +47,22 @@ public partial class MainWindow : Window
                 ApplyChatColumnWidths(grid, chat.IsVisible);
         };
 
-        // Auto-scroll to the newest message whenever the list changes.
-        // Post at default priority so the new item has been measured/laid out
-        // before we try to scroll to it.
-        chat.Messages.CollectionChanged += (_, _) =>
-            Dispatcher.UIThread.Post(() => scrollViewer.ScrollToEnd());
+        // Auto-scroll to the newest message whenever the list changes, and also
+        // as streaming tokens arrive (they update Text, not the collection).
+        chat.Messages.CollectionChanged += (_, e) =>
+        {
+            Dispatcher.UIThread.Post(() => scrollViewer.ScrollToEnd(), DispatcherPriority.Background);
+
+            // Subscribe to property changes on any new assistant message so the
+            // view scrolls to the bottom as each streaming token extends the bubble.
+            if (e.NewItems is null) return;
+            foreach (ChatMessage msg in e.NewItems)
+            {
+                if (msg.IsUser) continue;
+                msg.PropertyChanged += (_, _) =>
+                    Dispatcher.UIThread.Post(() => scrollViewer.ScrollToEnd(), DispatcherPriority.Background);
+            }
+        };
     }
 
     /// <summary>
@@ -62,9 +74,9 @@ public partial class MainWindow : Window
     private static void ApplyChatColumnWidths(Grid grid, bool isVisible)
     {
         grid.ColumnDefinitions[3].Width = isVisible
-            ? new GridLength(4)   : GridLength.Auto;   // splitter
+            ? new GridLength(4)   : new GridLength(0);   // splitter
         grid.ColumnDefinitions[4].Width = isVisible
-            ? new GridLength(280) : GridLength.Auto;   // panel
+            ? new GridLength(280) : new GridLength(0);   // panel
     }
 
     // ── IDialogService implementation ──────────────────────────────────────────

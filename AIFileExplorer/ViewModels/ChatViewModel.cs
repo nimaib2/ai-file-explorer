@@ -77,6 +77,7 @@ public partial class ChatViewModel : ObservableObject
         Messages.Add(new ChatMessage { Role = ChatRole.User, Text = text });
 
         _sendCts?.Cancel();
+        _sendCts?.Dispose();
         _sendCts = new CancellationTokenSource();
         var ct = _sendCts.Token;
 
@@ -134,6 +135,7 @@ public partial class ChatViewModel : ObservableObject
         IsVisible = true;   // open the panel if it's closed
 
         _sendCts?.Cancel();
+        _sendCts?.Dispose();
         _sendCts = new CancellationTokenSource();
         var ct = _sendCts.Token;
 
