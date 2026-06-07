@@ -4,11 +4,13 @@ using System.IO;
 
 namespace AIFileExplorer;
 
+/// <summary>
+/// Application entry point. Loads the <c>.env</c> file (if present) so the
+/// <c>ANTHROPIC_API_KEY</c> environment variable is set before any SDK call,
+/// then hands control to Avalonia's desktop lifetime.
+/// </summary>
 class Program
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
     [STAThread]
     public static void Main(string[] args)
     {
@@ -16,6 +18,12 @@ class Program
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
+    /// <summary>
+    /// Reads key=value pairs from a <c>.env</c> file four directories above the
+    /// output binary (i.e. the repo root when running under <c>dotnet run</c>)
+    /// and injects them into the process environment. Lines starting with <c>#</c>
+    /// and blank lines are ignored. Silently no-ops if the file does not exist.
+    /// </summary>
     private static void LoadEnvFile()
     {
         var envPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".env");
@@ -38,7 +46,10 @@ class Program
         }
     }
 
-    // Avalonia configuration, don't remove; also used by visual designer.
+    /// <summary>
+    /// Configures the Avalonia application builder. Kept public so the Avalonia
+    /// visual designer can call it without instantiating the full app.
+    /// </summary>
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()

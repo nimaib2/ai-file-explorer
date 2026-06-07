@@ -9,6 +9,11 @@ using AIFileExplorer.Views;
 
 namespace AIFileExplorer;
 
+/// <summary>
+/// Code-behind for the main application window. Handles UI concerns that cannot
+/// be expressed in MVVM bindings alone: column-width animation for the chat panel,
+/// auto-scroll for the streaming chat view, and dialog injection into the ViewModel.
+/// </summary>
 public partial class MainWindow : Window
 {
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;

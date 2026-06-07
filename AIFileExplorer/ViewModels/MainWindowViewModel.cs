@@ -13,6 +13,14 @@ using AIFileExplorer.Services;
 
 namespace AIFileExplorer.ViewModels;
 
+/// <summary>
+/// Root ViewModel for the application. Coordinates navigation, file listing,
+/// sorting/filtering, file operations, NL search, and the chat sidebar.
+/// Each concern is kept in its own region so the class stays readable despite
+/// its size — splitting into sub-ViewModels would require cross-VM coupling
+/// for commands like OpenSearchResult that need to update both the file list
+/// and the current path.
+/// </summary>
 public partial class MainWindowViewModel : ObservableObject
 {
     private readonly FileSystemService    _fs;

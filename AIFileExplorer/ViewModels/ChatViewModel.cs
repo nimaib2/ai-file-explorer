@@ -11,6 +11,14 @@ using AIFileExplorer.Services;
 
 namespace AIFileExplorer.ViewModels;
 
+/// <summary>
+/// ViewModel for the collapsible AI chat sidebar.
+/// Owns the conversation history, the input box state, and the streaming
+/// send/summarize flows. A <see cref="Func{FileContext}"/> delegate is injected
+/// at construction so the VM can snapshot the current explorer state at the
+/// moment a message is sent without holding a direct reference to
+/// <see cref="MainWindowViewModel"/>.
+/// </summary>
 public partial class ChatViewModel : ObservableObject
 {
     private readonly ChatService    _chatService = new();

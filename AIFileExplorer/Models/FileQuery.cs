@@ -8,6 +8,9 @@ namespace AIFileExplorer.Models;
 /// </summary>
 public class FileQuery
 {
+    /// <summary>Absolute path of the directory to walk. Must exist.</summary>
     public required string       RootPath { get; init; }
+
+    /// <summary>Constraints to apply to each file encountered during the walk.</summary>
     public required SearchFilter Filter   { get; init; }
 }

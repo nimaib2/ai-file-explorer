@@ -14,7 +14,11 @@ namespace AIFileExplorer.Services;
 /// </summary>
 public class NlSearchService
 {
-    // Kept as a constant so tests can assert against the exact contract Claude is given.
+    /// <summary>
+    /// The system prompt sent to Claude on every NL-search call.
+    /// Exposed as a <c>public const</c> so unit tests can assert against the exact
+    /// instruction set Claude is given without making live API calls.
+    /// </summary>
     public const string SystemPrompt =
         """
         You are a file-search query parser. The user will describe what files they are

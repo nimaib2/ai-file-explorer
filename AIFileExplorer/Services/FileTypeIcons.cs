@@ -15,7 +15,10 @@ namespace AIFileExplorer.Services;
 /// </summary>
 public static class FileTypeIcons
 {
+    /// <summary>Icon used for directory entries.</summary>
     public const string Folder  = "📁";
+
+    /// <summary>Fallback icon for file extensions not in the lookup table.</summary>
     public const string Generic = "📄";
 
     private static readonly Dictionary<string, string> Map =
@@ -73,6 +76,11 @@ public static class FileTypeIcons
             { ".deb",  "⚡" }, { ".rpm",  "⚡" },
         };
 
+    /// <summary>
+    /// Returns the emoji icon for the given file extension, or <see cref="Generic"/>
+    /// if the extension is not recognised. The lookup is case-insensitive.
+    /// </summary>
+    /// <param name="extension">File extension including the leading dot, e.g. <c>".pdf"</c>.</param>
     public static string ForExtension(string extension) =>
         Map.TryGetValue(extension, out var icon) ? icon : Generic;
 }
